@@ -1,0 +1,10 @@
+docs
+	Planning documents, implementation plans, and active task checklists.
+package.json
+	Manifest containing scripts and pnpm dependencies.
+.gitignore
+	Git ignore file.
+.gitignorelocal
+	Local git ignore file.
+.info
+	Project directory file summaries.

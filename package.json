@@ -1,0 +1,74 @@
+{
+  "name": "gambs",
+  "private": true,
+  "version": "0.0.0",
+  "description": "SPA CAD application.",
+  "type": "module",
+  "packageManager": "pnpm@11.9.0",
+  "scripts": {
+    "build": "tsc -b && vite build",
+    "dev": "vite",
+    "preinstall": "npx only-allow pnpm",
+    "lint": "eslint .",
+    "lint:css": "stylelint 'src/**/*.css'",
+    "prepare": "husky",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "lucide-react": "^1.16.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^24.12.3",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "eslint": "^10.3.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-jsdoc": "^63.0.0",
+    "eslint-plugin-package-json": "^1.1.0",
+    "eslint-plugin-prettier": "^5.5.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "eslint-plugin-simple-import-sort": "^13.0.0",
+    "globals": "^17.6.0",
+    "husky": "^9.1.7",
+    "jsdom": "^29.1.1",
+    "lint-staged": "^17.0.5",
+    "only-allow": "^1.2.2",
+    "prettier": "^3.8.3",
+    "stylelint": "^17.12.0",
+    "stylelint-config-standard": "^40.0.0",
+    "stylelint-declaration-strict-value": "^1.11.1",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.59.2",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.7"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,json}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.css": [
+      "stylelint --fix",
+      "prettier --write"
+    ],
+    "*.md": [
+      "prettier --write"
+    ]
+  },
+  "pnpm": {
+    "overrides": {
+      "undici": "^7.28.0",
+      "js-yaml": ">=4.2.0",
+      "@babel/core": ">=7.29.6"
+    }
+  }
+}

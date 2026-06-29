@@ -68,6 +68,35 @@ export interface BrepShape {
   solids: Solid3D[];
 }
 
+function getPlaneMapping(supportPlaneId?: string) {
+  if (supportPlaneId === 'datum_plane_yz') {
+    return {
+      project: (u: number, v: number, w: number) => ({ x: w, y: u, z: v }),
+      normal: { x: 1, y: 0, z: 0 },
+    };
+  }
+  if (supportPlaneId === 'datum_plane_zx') {
+    return {
+      project: (u: number, v: number, w: number) => ({ x: v, y: w, z: u }),
+      normal: { x: 0, y: 1, z: 0 },
+    };
+  }
+  return {
+    project: (u: number, v: number, w: number) => ({ x: u, y: v, z: w }),
+    normal: { x: 0, y: 0, z: 1 },
+  };
+}
+
+function mapNormal(nx: number, ny: number, nz: number, supportPlaneId?: string) {
+  if (supportPlaneId === 'datum_plane_yz') {
+    return { x: nz, y: nx, z: ny };
+  }
+  if (supportPlaneId === 'datum_plane_zx') {
+    return { x: ny, y: nz, z: nx };
+  }
+  return { x: nx, y: ny, z: nz };
+}
+
 /**
  * Builds a B-Rep cylinder or box shape by extruding a 2D sketch profile.
  * @param profile Wires/shapes from sketch.
@@ -78,6 +107,7 @@ export function extrudeProfile(
   profile: SketchGeometry[],
   depth: number,
   featureId: string = 'extrude',
+  supportPlaneId?: string,
 ): BrepShape {
   const vertices: Vertex3D[] = [];
   const edges: Edge3D[] = [];
@@ -87,11 +117,12 @@ export function extrudeProfile(
   const solids: Solid3D[] = [];
 
   const shellFaceIds: string[] = [];
+  const mapping = getPlaneMapping(supportPlaneId);
 
   // Helper to add vertex
-  const addVertex = (x: number, y: number, z: number, geomId: string = ''): string => {
+  const addVertex = (p: { x: number; y: number; z: number }, geomId: string = ''): string => {
     const id = `v_${vertices.length}_${featureId}${geomId ? `_${geomId}` : ''}`;
-    vertices.push({ id, x, y, z });
+    vertices.push({ id, ...p });
     return id;
   };
 
@@ -117,16 +148,16 @@ export function extrudeProfile(
       const y1 = Math.min(geom.start.y, geom.end.y);
       const y2 = Math.max(geom.start.y, geom.end.y);
 
-      // Vertices (bottom at z=0, top at z=depth)
-      const b00 = addVertex(x1, y1, 0, `${geom.id}_b00`);
-      const b10 = addVertex(x2, y1, 0, `${geom.id}_b10`);
-      const b11 = addVertex(x2, y2, 0, `${geom.id}_b11`);
-      const b01 = addVertex(x1, y2, 0, `${geom.id}_b01`);
+      // Vertices
+      const b00 = addVertex(mapping.project(x1, y1, 0), `${geom.id}_b00`);
+      const b10 = addVertex(mapping.project(x2, y1, 0), `${geom.id}_b10`);
+      const b11 = addVertex(mapping.project(x2, y2, 0), `${geom.id}_b11`);
+      const b01 = addVertex(mapping.project(x1, y2, 0), `${geom.id}_b01`);
 
-      const t00 = addVertex(x1, y1, depth, `${geom.id}_t00`);
-      const t10 = addVertex(x2, y1, depth, `${geom.id}_t10`);
-      const t11 = addVertex(x2, y2, depth, `${geom.id}_t11`);
-      const t01 = addVertex(x1, y2, depth, `${geom.id}_t01`);
+      const t00 = addVertex(mapping.project(x1, y1, depth), `${geom.id}_t00`);
+      const t10 = addVertex(mapping.project(x2, y1, depth), `${geom.id}_t10`);
+      const t11 = addVertex(mapping.project(x2, y2, depth), `${geom.id}_t11`);
+      const t01 = addVertex(mapping.project(x1, y2, depth), `${geom.id}_t01`);
 
       // Edges
       const be1 = addEdge('line', b00, b10, `${geom.id}_be1`);
@@ -152,7 +183,7 @@ export function extrudeProfile(
         id: bottomFaceId,
         outerWireId: bottomWireId,
         innerWireIds: [],
-        normal: { x: 0, y: 0, z: -1 },
+        normal: mapNormal(0, 0, -1, supportPlaneId),
       });
       shellFaceIds.push(bottomFaceId);
 
@@ -163,7 +194,7 @@ export function extrudeProfile(
         id: topFaceId,
         outerWireId: topWireId,
         innerWireIds: [],
-        normal: { x: 0, y: 0, z: 1 },
+        normal: mapNormal(0, 0, 1, supportPlaneId),
       });
       shellFaceIds.push(topFaceId);
 
@@ -174,7 +205,7 @@ export function extrudeProfile(
         id: fSide1,
         outerWireId: wSide1,
         innerWireIds: [],
-        normal: { x: 0, y: -1, z: 0 },
+        normal: mapNormal(0, -1, 0, supportPlaneId),
       });
       shellFaceIds.push(fSide1);
 
@@ -185,7 +216,7 @@ export function extrudeProfile(
         id: fSide2,
         outerWireId: wSide2,
         innerWireIds: [],
-        normal: { x: 1, y: 0, z: 0 },
+        normal: mapNormal(1, 0, 0, supportPlaneId),
       });
       shellFaceIds.push(fSide2);
 
@@ -196,7 +227,7 @@ export function extrudeProfile(
         id: fSide3,
         outerWireId: wSide3,
         innerWireIds: [],
-        normal: { x: 0, y: 1, z: 0 },
+        normal: mapNormal(0, 1, 0, supportPlaneId),
       });
       shellFaceIds.push(fSide3);
 
@@ -207,21 +238,21 @@ export function extrudeProfile(
         id: fSide4,
         outerWireId: wSide4,
         innerWireIds: [],
-        normal: { x: -1, y: 0, z: 0 },
+        normal: mapNormal(-1, 0, 0, supportPlaneId),
       });
       shellFaceIds.push(fSide4);
     } else if (geom.type === 'circle') {
       const { center, radius } = geom;
 
-      const bCenter = addVertex(center.x, center.y, 0, `${geom.id}_bCenter`);
-      const tCenter = addVertex(center.x, center.y, depth, `${geom.id}_tCenter`);
+      const bCenter = addVertex(mapping.project(center.x, center.y, 0), `${geom.id}_bCenter`);
+      const tCenter = addVertex(mapping.project(center.x, center.y, depth), `${geom.id}_tCenter`);
 
       const be = addEdge('circle', bCenter, bCenter, `${geom.id}_be`, {
-        center: { ...center, z: 0 },
+        center: mapping.project(center.x, center.y, 0),
         radius,
       });
       const te = addEdge('circle', tCenter, tCenter, `${geom.id}_te`, {
-        center: { ...center, z: depth },
+        center: mapping.project(center.x, center.y, depth),
         radius,
       });
 
@@ -232,7 +263,7 @@ export function extrudeProfile(
         id: bottomFaceId,
         outerWireId: bottomWireId,
         innerWireIds: [],
-        normal: { x: 0, y: 0, z: -1 },
+        normal: mapNormal(0, 0, -1, supportPlaneId),
       });
       shellFaceIds.push(bottomFaceId);
 
@@ -243,7 +274,7 @@ export function extrudeProfile(
         id: topFaceId,
         outerWireId: topWireId,
         innerWireIds: [],
-        normal: { x: 0, y: 0, z: 1 },
+        normal: mapNormal(0, 0, 1, supportPlaneId),
       });
       shellFaceIds.push(topFaceId);
 
@@ -254,7 +285,7 @@ export function extrudeProfile(
         id: sideFaceId,
         outerWireId: sideWireId,
         innerWireIds: [],
-        normal: { x: 1, y: 0, z: 0 },
+        normal: mapNormal(1, 0, 0, supportPlaneId),
       });
       shellFaceIds.push(sideFaceId);
     }
@@ -282,8 +313,9 @@ export function pocketProfile(
   profile: SketchGeometry[],
   depth: number,
   featureId: string = 'pocket',
+  supportPlaneId?: string,
 ): BrepShape {
-  const pocketExtrusion = extrudeProfile(profile, depth, featureId);
+  const pocketExtrusion = extrudeProfile(profile, depth, featureId, supportPlaneId);
 
   if (pocketExtrusion.vertices.length === 0) return baseSolid;
 
@@ -1829,6 +1861,7 @@ export function buildSolidFromFeatures(features: Feature[]): BrepShape {
   const sketchZOffsetMap = new Map<string, number>();
   const shapesMap = new Map<string, BrepShape>();
 
+  let activeSupportPlaneId: string | undefined = undefined;
   for (const f of features) {
     if (f.params.isDatum === true) continue;
     if (f.type === 'sketch') {
@@ -1837,14 +1870,15 @@ export function buildSolidFromFeatures(features: Feature[]): BrepShape {
       const zOffset = (f.params.zOffset as number) ?? 0;
       sketchZOffsetMap.set(f.id, zOffset);
       currentSketchGeoms = geoms;
+      activeSupportPlaneId = f.params.supportPlaneId as string | undefined;
     } else if (f.type === 'pad') {
       const distanceVal = (f.params.distance as number) ?? 10;
-      solid = extrudeProfile(currentSketchGeoms, distanceVal, f.id);
+      solid = extrudeProfile(currentSketchGeoms, distanceVal, f.id, activeSupportPlaneId);
       shapesMap.set(f.id, solid);
     } else if (f.type === 'pocket') {
       const distanceVal = (f.params.distance as number) ?? 5;
       if (solid.vertices.length > 0) {
-        solid = pocketProfile(solid, currentSketchGeoms, distanceVal, f.id);
+        solid = pocketProfile(solid, currentSketchGeoms, distanceVal, f.id, activeSupportPlaneId);
       }
       shapesMap.set(f.id, solid);
     } else if (f.type === 'revolution') {

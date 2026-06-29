@@ -643,11 +643,9 @@ export default function SketchCanvas(): ReactNode {
       if (e.button === 0 && currentTool !== 'select') {
         const worldPos = screenToWorld(e.clientX, e.clientY);
 
-        let sketchId = currentSketchId;
+        const sketchId = currentSketchId;
         if (!sketchId) {
-          sketchId = addFeature('sketch', 'Sketch 1', { geometries: [], constraints: [] }, []);
-          enterSketchEdit(sketchId);
-          stateRef.current.activeSketchId = sketchId;
+          return;
         }
 
         if (!isDrawingRef.current) {

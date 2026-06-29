@@ -52,25 +52,39 @@ function buildThreeGeometry(shape: BrepShape): THREE.BufferGeometry {
         const segments = 32;
 
         if (face.id.includes('bottom') || face.id.includes('top')) {
-          const capZ = center.z;
-          const points: { x: number; y: number }[] = [];
+          const points: { x: number; y: number; z: number }[] = [];
           for (let i = 0; i < segments; i++) {
             const angle = (i * Math.PI * 2) / segments;
-            points.push({
-              x: center.x + radius * Math.cos(angle),
-              y: center.y + radius * Math.sin(angle),
-            });
+            if (Math.abs(n.x) > 0.9) {
+              points.push({
+                x: center.x,
+                y: center.y + radius * Math.cos(angle),
+                z: center.z + radius * Math.sin(angle),
+              });
+            } else if (Math.abs(n.y) > 0.9) {
+              points.push({
+                x: center.x + radius * Math.cos(angle),
+                y: center.y,
+                z: center.z + radius * Math.sin(angle),
+              });
+            } else {
+              points.push({
+                x: center.x + radius * Math.cos(angle),
+                y: center.y + radius * Math.sin(angle),
+                z: center.z,
+              });
+            }
           }
 
           for (let i = 0; i < segments; i++) {
             const nextIdx = (i + 1) % segments;
-            positions.push(center.x, center.y, capZ);
-            if (n.z > 0) {
-              positions.push(points[i].x, points[i].y, capZ);
-              positions.push(points[nextIdx].x, points[nextIdx].y, capZ);
+            positions.push(center.x, center.y, center.z);
+            if (n.x + n.y + n.z > 0) {
+              positions.push(points[i].x, points[i].y, points[i].z);
+              positions.push(points[nextIdx].x, points[nextIdx].y, points[nextIdx].z);
             } else {
-              positions.push(points[nextIdx].x, points[nextIdx].y, capZ);
-              positions.push(points[i].x, points[i].y, capZ);
+              positions.push(points[nextIdx].x, points[nextIdx].y, points[nextIdx].z);
+              positions.push(points[i].x, points[i].y, points[i].z);
             }
             normals.push(n.x, n.y, n.z);
             normals.push(n.x, n.y, n.z);
@@ -98,37 +112,63 @@ function buildThreeGeometry(shape: BrepShape): THREE.BufferGeometry {
         const segments = 32;
 
         for (let i = 0; i < segments; i++) {
-          const a1 = (i * Math.PI * 2) / segments;
-          const a2 = ((i + 1) * Math.PI * 2) / segments;
+          const angle = (i * Math.PI * 2) / segments;
+          const nextAngle = ((i + 1) * Math.PI * 2) / segments;
 
-          const bx1 = bc.x + r * Math.cos(a1);
-          const by1 = bc.y + r * Math.sin(a1);
-          const bx2 = bc.x + r * Math.cos(a2);
-          const by2 = bc.y + r * Math.sin(a2);
+          let b1: { x: number; y: number; z: number };
+          let b2: { x: number; y: number; z: number };
+          let t1: { x: number; y: number; z: number };
+          let t2: { x: number; y: number; z: number };
+          let normalDir: { x: number; y: number; z: number };
 
-          const tx1 = tc.x + r * Math.cos(a1);
-          const ty1 = tc.y + r * Math.sin(a1);
-          const tx2 = tc.x + r * Math.cos(a2);
-          const ty2 = tc.y + r * Math.sin(a2);
+          const dx = tc.x - bc.x;
+          const dy = tc.y - bc.y;
 
-          const nx1 = Math.cos(a1);
-          const ny1 = Math.sin(a1);
-          const nx2 = Math.cos(a2);
-          const ny2 = Math.sin(a2);
+          if (Math.abs(dx) > 0.9) {
+            b1 = { x: bc.x, y: bc.y + r * Math.cos(angle), z: bc.z + r * Math.sin(angle) };
+            b2 = { x: bc.x, y: bc.y + r * Math.cos(nextAngle), z: bc.z + r * Math.sin(nextAngle) };
+            t1 = { x: tc.x, y: tc.y + r * Math.cos(angle), z: tc.z + r * Math.sin(angle) };
+            t2 = { x: tc.x, y: tc.y + r * Math.cos(nextAngle), z: tc.z + r * Math.sin(nextAngle) };
+            normalDir = {
+              x: 0,
+              y: Math.cos((angle + nextAngle) / 2),
+              z: Math.sin((angle + nextAngle) / 2),
+            };
+          } else if (Math.abs(dy) > 0.9) {
+            b1 = { x: bc.x + r * Math.cos(angle), y: bc.y, z: bc.z + r * Math.sin(angle) };
+            b2 = { x: bc.x + r * Math.cos(nextAngle), y: bc.y, z: bc.z + r * Math.sin(nextAngle) };
+            t1 = { x: tc.x + r * Math.cos(angle), y: tc.y, z: tc.z + r * Math.sin(angle) };
+            t2 = { x: tc.x + r * Math.cos(nextAngle), y: tc.y, z: tc.z + r * Math.sin(nextAngle) };
+            normalDir = {
+              x: Math.cos((angle + nextAngle) / 2),
+              y: 0,
+              z: Math.sin((angle + nextAngle) / 2),
+            };
+          } else {
+            b1 = { x: bc.x + r * Math.cos(angle), y: bc.y + r * Math.sin(angle), z: bc.z };
+            b2 = { x: bc.x + r * Math.cos(nextAngle), y: bc.y + r * Math.sin(nextAngle), z: bc.z };
+            t1 = { x: tc.x + r * Math.cos(angle), y: tc.y + r * Math.sin(angle), z: tc.z };
+            t2 = { x: tc.x + r * Math.cos(nextAngle), y: tc.y + r * Math.sin(nextAngle), z: tc.z };
+            normalDir = {
+              x: Math.cos((angle + nextAngle) / 2),
+              y: Math.sin((angle + nextAngle) / 2),
+              z: 0,
+            };
+          }
 
-          positions.push(bx1, by1, bc.z);
-          positions.push(bx2, by2, bc.z);
-          positions.push(tx1, ty1, tc.z);
-          normals.push(nx1, ny1, 0);
-          normals.push(nx2, ny2, 0);
-          normals.push(nx1, ny1, 0);
+          positions.push(b1.x, b1.y, b1.z);
+          positions.push(b2.x, b2.y, b2.z);
+          positions.push(t1.x, t1.y, t1.z);
+          normals.push(normalDir.x, normalDir.y, normalDir.z);
+          normals.push(normalDir.x, normalDir.y, normalDir.z);
+          normals.push(normalDir.x, normalDir.y, normalDir.z);
 
-          positions.push(bx2, by2, bc.z);
-          positions.push(tx2, ty2, tc.z);
-          positions.push(tx1, ty1, tc.z);
-          normals.push(nx2, ny2, 0);
-          normals.push(nx2, ny2, 0);
-          normals.push(nx1, ny1, 0);
+          positions.push(b2.x, b2.y, b2.z);
+          positions.push(t2.x, t2.y, t2.z);
+          positions.push(t1.x, t1.y, t1.z);
+          normals.push(normalDir.x, normalDir.y, normalDir.z);
+          normals.push(normalDir.x, normalDir.y, normalDir.z);
+          normals.push(normalDir.x, normalDir.y, normalDir.z);
         }
       }
     }
@@ -187,7 +227,14 @@ export default function Viewport3D(): ReactNode {
   const gizmoCanvasRef = useRef<HTMLCanvasElement>(null);
 
   // Consume features to rebuild meshes when features change
-  const { documentState, settings } = useCad();
+  const {
+    documentState,
+    settings,
+    isSelectingSupportPlane,
+    setIsSelectingSupportPlane,
+    addFeature,
+    enterSketchEdit,
+  } = useCad();
   const { features } = documentState;
 
   useEffect(() => {
@@ -588,6 +635,105 @@ export default function Viewport3D(): ReactNode {
           pointerEvents: 'none',
         }}
       />
+      {isSelectingSupportPlane && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'var(--cad-color-surface-secondary)',
+            border: '1px solid var(--cad-glass-border-base)',
+            borderRadius: 'var(--cad-radius-md)',
+            padding: '16px 24px',
+            zIndex: 10,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '12px',
+            boxShadow: 'var(--cad-shadow-lg)',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          <span
+            style={{
+              color: 'var(--cad-color-text-primary)',
+              fontSize: '0.9rem',
+              fontWeight: 500,
+            }}
+          >
+            Select a support plane for the sketch
+          </span>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={() => {
+                const count =
+                  features.filter((f) => f.type === 'sketch' && !f.params.isDatum).length + 1;
+                const newSketchId = addFeature(
+                  'sketch',
+                  `Sketch ${count}`,
+                  { supportPlaneId: 'datum_plane_xy', geometries: [], constraints: [] },
+                  ['datum_plane_xy'],
+                );
+                setIsSelectingSupportPlane(false);
+                enterSketchEdit(newSketchId);
+              }}
+              className="toolbar-btn primary"
+              style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+            >
+              XY Plane
+            </button>
+            <button
+              onClick={() => {
+                const count =
+                  features.filter((f) => f.type === 'sketch' && !f.params.isDatum).length + 1;
+                const newSketchId = addFeature(
+                  'sketch',
+                  `Sketch ${count}`,
+                  { supportPlaneId: 'datum_plane_yz', geometries: [], constraints: [] },
+                  ['datum_plane_yz'],
+                );
+                setIsSelectingSupportPlane(false);
+                enterSketchEdit(newSketchId);
+              }}
+              className="toolbar-btn primary"
+              style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+            >
+              YZ Plane
+            </button>
+            <button
+              onClick={() => {
+                const count =
+                  features.filter((f) => f.type === 'sketch' && !f.params.isDatum).length + 1;
+                const newSketchId = addFeature(
+                  'sketch',
+                  `Sketch ${count}`,
+                  { supportPlaneId: 'datum_plane_zx', geometries: [], constraints: [] },
+                  ['datum_plane_zx'],
+                );
+                setIsSelectingSupportPlane(false);
+                enterSketchEdit(newSketchId);
+              }}
+              className="toolbar-btn primary"
+              style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+            >
+              ZX Plane
+            </button>
+            <button
+              onClick={() => setIsSelectingSupportPlane(false)}
+              className="toolbar-btn"
+              style={{
+                padding: '6px 12px',
+                fontSize: '0.8rem',
+                border: '1px solid var(--cad-color-brand-danger)',
+                color: 'var(--cad-color-brand-danger)',
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -30,6 +30,8 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
     addFeature,
     updateFeature,
     enterSketchEdit,
+    isSelectingSupportPlane,
+    setIsSelectingSupportPlane,
   } = useCad();
   const { features, activeFeatureId } = documentState;
 
@@ -51,9 +53,9 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging.current) return;
-      const newWidth = Math.max(240, Math.min(600, e.clientX));
-      setWidth(newWidth);
+      if (isDragging.current) {
+        setWidth(Math.max(240, Math.min(600, e.clientX)));
+      }
     };
 
     const handleMouseUp = () => {
@@ -74,6 +76,27 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
   }, []);
 
   const handleAddMockFeature = (type: FeatureType) => {
+    if (type === 'sketch') {
+      const selectedPlane = features.find(
+        (f) => f.id === activeFeatureId && f.params.isDatum && f.id.includes('plane'),
+      );
+      if (selectedPlane) {
+        const count = features.filter((f) => f.type === 'sketch' && !f.params.isDatum).length + 1;
+        const name = `Sketch ${count}`;
+        const dependencies = [selectedPlane.id];
+        const newSketchId = addFeature(
+          'sketch',
+          name,
+          { supportPlaneId: selectedPlane.id, geometries: [], constraints: [] },
+          dependencies,
+        );
+        enterSketchEdit(newSketchId);
+      } else {
+        setIsSelectingSupportPlane(true);
+      }
+      return;
+    }
+
     const count = features.filter((f) => f.type === type).length + 1;
     const name = `${type.charAt(0).toUpperCase() + type.slice(1)} ${count}`;
     const dependencies = features.length > 0 ? [features[features.length - 1].id] : [];
@@ -1060,20 +1083,49 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
               ) => {
                 if (!feat) return null;
                 const isVisible = feat.params.visible !== false;
+                const isActive = activeFeatureId === feat.id;
                 return (
                   <div
                     key={feat.id}
+                    onClick={() => {
+                      if (isSelectingSupportPlane && feat.id.startsWith('datum_plane_')) {
+                        const count =
+                          features.filter((f) => f.type === 'sketch' && !f.params.isDatum).length +
+                          1;
+                        const name = `Sketch ${count}`;
+                        const dependencies = [feat.id];
+                        const newSketchId = addFeature(
+                          'sketch',
+                          name,
+                          { supportPlaneId: feat.id, geometries: [], constraints: [] },
+                          dependencies,
+                        );
+                        setIsSelectingSupportPlane(false);
+                        enterSketchEdit(newSketchId);
+                      } else {
+                        setActiveFeature(feat.id);
+                      }
+                    }}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       padding: '4px 12px 4px ' + paddingLeft,
-                      background: 'transparent',
+                      background: isActive ? 'var(--cad-glass-bg-hover)' : 'transparent',
+                      borderLeft: isActive ? '2px solid var(--cad-color-brand-main)' : 'none',
                       borderRadius: 'var(--cad-radius-sm)',
-                      cursor: 'default',
+                      cursor: 'pointer',
                     }}
                   >
-                    <span style={{ fontSize: '0.8rem', color: 'var(--cad-color-text-secondary)' }}>
+                    <span
+                      style={{
+                        fontSize: '0.8rem',
+                        color: isActive
+                          ? 'var(--cad-color-text-primary)'
+                          : 'var(--cad-color-text-secondary)',
+                        fontWeight: isActive ? 600 : 400,
+                      }}
+                    >
                       {label}
                     </span>
                     <button

@@ -65,6 +65,8 @@ interface CadContextType {
   loadDocument: (doc: DocumentState) => void;
   selectionFilter: 'vertices' | 'edges' | 'faces' | 'all';
   setSelectionFilter: (filter: 'vertices' | 'edges' | 'faces' | 'all') => void;
+  isSelectingSupportPlane: boolean;
+  setIsSelectingSupportPlane: (val: boolean) => void;
 }
 
 const CadContext = createContext<CadContextType | undefined>(undefined);
@@ -98,6 +100,7 @@ export function CadProvider({ children }: { children: ReactNode }): ReactNode {
   const [history, dispatch] = useReducer(cadReducer, initialHistoryState);
   const [activeTool, setActiveTool] = useState<ToolType>('select');
   const [selectedElements, setSelectedElements] = useState<SelectedElement[]>([]);
+  const [isSelectingSupportPlane, setIsSelectingSupportPlane] = useState(false);
   const [selectionFilter, setSelectionFilter] = useState<'vertices' | 'edges' | 'faces' | 'all'>(
     'all',
   );
@@ -271,6 +274,8 @@ export function CadProvider({ children }: { children: ReactNode }): ReactNode {
     loadDocument,
     selectionFilter,
     setSelectionFilter,
+    isSelectingSupportPlane,
+    setIsSelectingSupportPlane,
   };
 
   return <CadContext.Provider value={value}>{children}</CadContext.Provider>;

@@ -14,7 +14,15 @@ import { CadProvider, useCad } from './store/CadContext.tsx';
 function WorkspaceShell(): ReactNode {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const { documentState, undo, redo, setActiveTool, addFeature, settings } = useCad();
+  const {
+    documentState,
+    undo,
+    redo,
+    setActiveTool,
+    addFeature,
+    settings,
+    setIsSelectingSupportPlane,
+  } = useCad();
   const { activeSketchId, features } = documentState;
 
   // Apply theme class to document body
@@ -43,13 +51,25 @@ function WorkspaceShell(): ReactNode {
       } else {
         switch (e.key.toLowerCase()) {
           case 'l':
-            setActiveTool('line');
+            if (!activeSketchId) {
+              setIsSelectingSupportPlane(true);
+            } else {
+              setActiveTool('line');
+            }
             break;
           case 'c':
-            setActiveTool('circle');
+            if (!activeSketchId) {
+              setIsSelectingSupportPlane(true);
+            } else {
+              setActiveTool('circle');
+            }
             break;
           case 'r':
-            setActiveTool('rect');
+            if (!activeSketchId) {
+              setIsSelectingSupportPlane(true);
+            } else {
+              setActiveTool('rect');
+            }
             break;
           case 's':
           case 'escape':
@@ -75,7 +95,7 @@ function WorkspaceShell(): ReactNode {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [undo, redo, setActiveTool, addFeature, features]);
+  }, [undo, redo, setActiveTool, addFeature, features, activeSketchId, setIsSelectingSupportPlane]);
 
   return (
     <div className="app-container">

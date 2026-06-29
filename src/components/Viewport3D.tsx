@@ -349,7 +349,7 @@ export default function Viewport3D(): ReactNode {
         style={{
           position: 'absolute',
           bottom: '16px',
-          left: '16px',
+          right: '16px',
           width: '100px',
           height: '100px',
           pointerEvents: 'none',

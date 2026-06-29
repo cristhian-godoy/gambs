@@ -105,20 +105,19 @@
 
 /* Sidebar Panel */
 .sidebar {
-  width: 320px;
   background-color: var(--cad-color-surface-elevated);
   border-right: 1px solid var(--cad-glass-border-base);
   display: flex;
   flex-direction: column;
   z-index: 10;
-  transition: transform var(--cad-transition-normal) ease;
+  transition: width var(--cad-transition-normal) ease;
   position: relative;
 }
 
 .sidebar.collapsed {
-  transform: translateX(-100%);
-  position: absolute;
-  height: 100%;
+  width: 0 !important;
+  overflow: hidden;
+  border-right: none;
 }
 
 .sidebar-header {
@@ -127,6 +126,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-width: 240px; /* prevent content squishing during collapse transition */
 }
 
 .sidebar-title {
@@ -144,13 +144,13 @@
   display: flex;
   flex-direction: column;
   gap: var(--cad-spacing-md);
+  min-width: 240px; /* prevent content squishing */
 }
 
 /* Collapsible Handle Trigger */
 .sidebar-toggle {
   position: absolute;
   top: 50%;
-  left: 320px;
   transform: translateY(-50%);
   width: 20px;
   height: 60px;
@@ -166,14 +166,19 @@
   transition: left var(--cad-transition-normal) ease;
 }
 
-.sidebar.collapsed + .sidebar-toggle {
-  left: 0;
-}
-
 .sidebar-toggle:hover {
   background: var(--cad-glass-bg-hover);
   color: var(--cad-color-brand-main);
   box-shadow: var(--cad-shadow-glow);
+}
+
+.sidebar-resizer {
+  transition: background-color var(--cad-transition-fast) ease;
+}
+
+.sidebar-resizer:hover {
+  background-color: var(--cad-color-brand-main) !important;
+  opacity: 0.5;
 }
 
 /* Viewport Area */

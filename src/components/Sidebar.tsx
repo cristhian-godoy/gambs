@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, FolderTree, Trash2 } from 'lucide-react';
-import { type ReactNode } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import { useCad } from '../store/CadContext.tsx';
 import type { FeatureType } from '../store/types.ts';
@@ -24,6 +24,39 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
     enterSketchEdit,
   } = useCad();
   const { features, activeFeatureId } = documentState;
+
+  const [width, setWidth] = useState(320);
+  const isDragging = useRef(false);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current) return;
+      const newWidth = Math.max(240, Math.min(600, e.clientX));
+      setWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      if (isDragging.current) {
+        isDragging.current = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
 
   const handleAddMockFeature = (type: FeatureType) => {
     const count = features.filter((f) => f.type === type).length + 1;
@@ -981,7 +1014,10 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
 
   return (
     <>
-      <aside className={`sidebar ${isOpen ? '' : 'collapsed'}`}>
+      <aside
+        className={`sidebar ${isOpen ? '' : 'collapsed'}`}
+        style={{ width: isOpen ? `${width}px` : '0px' }}
+      >
         <div className="sidebar-header">
           <span className="sidebar-title">Feature Tree</span>
           <FolderTree size={16} style={{ color: 'var(--cad-color-text-secondary)' }} />
@@ -1285,10 +1321,27 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
             </div>
           </div>
         </div>
+        {isOpen && (
+          <div
+            onMouseDown={handleMouseDown}
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: '-3px',
+              width: '6px',
+              height: '100%',
+              cursor: 'ew-resize',
+              zIndex: 20,
+              background: 'transparent',
+            }}
+            className="sidebar-resizer"
+          />
+        )}
       </aside>
       <button
         className="sidebar-toggle"
         onClick={onToggle}
+        style={{ left: isOpen ? `${width}px` : '0px' }}
         title={isOpen ? 'Collapse Sidebar' : 'Expand Sidebar'}
         aria-label={isOpen ? 'Collapse Sidebar' : 'Expand Sidebar'}
       >

@@ -193,7 +193,7 @@ export default function Viewport3D(): ReactNode {
 
     const axisXFeat = features.find((f) => f.id === 'datum_axis_x');
     if (axisXFeat && axisXFeat.params.visible !== false) {
-      const pointsX = [new THREE.Vector3(-100, 0, 0), new THREE.Vector3(100, 0, 0)];
+      const pointsX = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(100, 0, 0)];
       const geomX = new THREE.BufferGeometry().setFromPoints(pointsX);
       const matX = new THREE.LineBasicMaterial({ color: '#ef4444' }); // Red
       datumGeometries.push(geomX, matX);
@@ -203,7 +203,7 @@ export default function Viewport3D(): ReactNode {
 
     const axisYFeat = features.find((f) => f.id === 'datum_axis_y');
     if (axisYFeat && axisYFeat.params.visible !== false) {
-      const pointsY = [new THREE.Vector3(0, -100, 0), new THREE.Vector3(0, 100, 0)];
+      const pointsY = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 100, 0)];
       const geomY = new THREE.BufferGeometry().setFromPoints(pointsY);
       const matY = new THREE.LineBasicMaterial({ color: '#22c55e' }); // Green
       datumGeometries.push(geomY, matY);
@@ -213,7 +213,7 @@ export default function Viewport3D(): ReactNode {
 
     const axisZFeat = features.find((f) => f.id === 'datum_axis_z');
     if (axisZFeat && axisZFeat.params.visible !== false) {
-      const pointsZ = [new THREE.Vector3(0, 0, -100), new THREE.Vector3(0, 0, 100)];
+      const pointsZ = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 100)];
       const geomZ = new THREE.BufferGeometry().setFromPoints(pointsZ);
       const matZ = new THREE.LineBasicMaterial({ color: '#3b82f6' }); // Blue
       datumGeometries.push(geomZ, matZ);
@@ -321,7 +321,7 @@ export default function Viewport3D(): ReactNode {
 
         const axes = [
           { name: 'X', dir: new THREE.Vector3(1, 0, 0), color: '#ef4444' },
-          { name: 'Y', dir: new THREE.Vector3(0, 1, 0), color: '#22c55e' },
+          { name: 'Y', dir: new THREE.Vector3(0, -1, 0), color: '#22c55e' },
           { name: 'Z', dir: new THREE.Vector3(0, 0, 1), color: '#3b82f6' },
         ];
 

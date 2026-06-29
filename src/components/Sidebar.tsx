@@ -1,8 +1,16 @@
-import { ChevronLeft, ChevronRight, Eye, EyeOff, FolderTree, Trash2 } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  FolderTree,
+  Trash2,
+} from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import { useCad } from '../store/CadContext.tsx';
-import type { FeatureType } from '../store/types.ts';
+import type { Feature, FeatureType } from '../store/types.ts';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -28,6 +36,10 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
   const [width, setWidth] = useState(320);
   const [dragging, setDragging] = useState(false);
   const isDragging = useRef(false);
+
+  const [originExpanded, setOriginExpanded] = useState(true);
+  const [axesExpanded, setAxesExpanded] = useState(false);
+  const [planesExpanded, setPlanesExpanded] = useState(false);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -1033,123 +1045,324 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
           style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto' }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {features.length === 0 ? (
-              <div style={{ color: 'var(--cad-color-text-muted)', fontSize: '0.875rem' }}>
-                No features created yet. Use the buttons below to create mock features.
-              </div>
-            ) : (
-              features.map((feature) => {
-                const isActive = feature.id === activeFeatureId;
+            {(() => {
+              const userFeatures = features.filter((f) => f.params.isDatum !== true);
+              const originFeat = features.find((f) => f.id === 'datum_origin');
+
+              const renderDatumRow = (
+                feat: Feature | undefined,
+                label: string,
+                paddingLeft: string,
+              ) => {
+                if (!feat) return null;
+                const isVisible = feat.params.visible !== false;
                 return (
                   <div
-                    key={feature.id}
-                    onClick={() => setActiveFeature(feature.id)}
+                    key={feat.id}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      padding: '8px 12px',
-                      background: isActive
-                        ? 'var(--cad-glass-bg-hover)'
-                        : 'var(--cad-color-surface-tertiary)',
-                      border: '1px solid',
-                      borderColor: isActive
-                        ? 'var(--cad-color-brand-main)'
-                        : 'var(--cad-glass-border-base)',
+                      padding: '4px 12px 4px ' + paddingLeft,
+                      background: 'transparent',
                       borderRadius: 'var(--cad-radius-sm)',
-                      cursor: 'pointer',
-                      transition: 'all var(--cad-transition-fast)',
+                      cursor: 'default',
                     }}
                   >
-                    <span
-                      style={{
-                        fontSize: '0.875rem',
-                        fontWeight: isActive ? 600 : 400,
-                        color: isActive
-                          ? 'var(--cad-color-text-primary)'
-                          : 'var(--cad-color-text-secondary)',
-                      }}
-                    >
-                      {feature.name}
-                      {feature.type === 'sketch' && feature.params.converged === false && (
-                        <span
-                          style={{
-                            fontSize: '0.7rem',
-                            color: '#ef4444',
-                            fontWeight: 'bold',
-                            marginLeft: '8px',
-                          }}
-                        >
-                          (Conflict)
-                        </span>
-                      )}
-                      {feature.type === 'sketch' &&
-                        feature.params.converged !== false &&
-                        feature.params.dof !== undefined && (
-                          <span
-                            style={{
-                              fontSize: '0.7rem',
-                              color:
-                                (feature.params.dof as number) === 0
-                                  ? '#22c55e'
-                                  : 'var(--cad-color-text-muted)',
-                              fontWeight: (feature.params.dof as number) === 0 ? 'bold' : 'normal',
-                              marginLeft: '8px',
-                            }}
-                          >
-                            ({feature.params.dof as number} DOF)
-                          </span>
-                        )}
+                    <span style={{ fontSize: '0.8rem', color: 'var(--cad-color-text-secondary)' }}>
+                      {label}
                     </span>
-                    {feature.params.isDatum === true ? (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const isVisible = feature.params.visible !== false;
-                          updateFeature(feature.id, { visible: !isVisible });
-                        }}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color:
-                            feature.params.visible !== false
-                              ? 'var(--cad-color-brand-main)'
-                              : 'var(--cad-color-text-muted)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                        }}
-                        title={feature.params.visible !== false ? 'Hide Datum' : 'Show Datum'}
-                      >
-                        {feature.params.visible !== false ? (
-                          <Eye size={14} />
-                        ) : (
-                          <EyeOff size={14} />
-                        )}
-                      </button>
-                    ) : (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteFeature(feature.id);
-                        }}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: 'var(--cad-color-brand-danger)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                        }}
-                        title="Delete Feature"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateFeature(feat.id, { visible: !isVisible });
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: isVisible
+                          ? 'var(--cad-color-brand-main)'
+                          : 'var(--cad-color-text-muted)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: '2px',
+                      }}
+                      title={isVisible ? 'Hide' : 'Show'}
+                    >
+                      {isVisible ? <Eye size={12} /> : <EyeOff size={12} />}
+                    </button>
                   </div>
                 );
-              })
-            )}
+              };
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {/* Collapsible Origin Root Node */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <div
+                      onClick={() => setOriginExpanded(!originExpanded)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '6px 12px',
+                        background: 'var(--cad-color-surface-tertiary)',
+                        border: '1px solid var(--cad-glass-border-base)',
+                        borderRadius: 'var(--cad-radius-sm)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {originExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                        <FolderTree size={14} style={{ color: 'var(--cad-color-brand-main)' }} />
+                        <span
+                          style={{
+                            fontSize: '0.85rem',
+                            fontWeight: 600,
+                            color: 'var(--cad-color-text-primary)',
+                          }}
+                        >
+                          Origin
+                        </span>
+                      </div>
+                      {originFeat && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const isVisible = originFeat.params.visible !== false;
+                            updateFeature(originFeat.id, { visible: !isVisible });
+                          }}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color:
+                              originFeat.params.visible !== false
+                                ? 'var(--cad-color-brand-main)'
+                                : 'var(--cad-color-text-muted)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                          }}
+                          title={
+                            originFeat.params.visible !== false
+                              ? 'Hide Origin Point'
+                              : 'Show Origin Point'
+                          }
+                        >
+                          {originFeat.params.visible !== false ? (
+                            <Eye size={14} />
+                          ) : (
+                            <EyeOff size={14} />
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Origin Children: Axes & Planes */}
+                    {originExpanded && (
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '2px',
+                          borderLeft: '1px solid var(--cad-glass-border-base)',
+                          marginLeft: '18px',
+                          paddingLeft: '4px',
+                        }}
+                      >
+                        {/* Axes Folder */}
+                        <div
+                          onClick={() => setAxesExpanded(!axesExpanded)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            padding: '4px 12px',
+                            cursor: 'pointer',
+                            gap: '6px',
+                          }}
+                        >
+                          {axesExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                          <span
+                            style={{
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                              color: 'var(--cad-color-text-secondary)',
+                            }}
+                          >
+                            Axes
+                          </span>
+                        </div>
+
+                        {axesExpanded && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                            {renderDatumRow(
+                              features.find((f) => f.id === 'datum_axis_x'),
+                              'X Axis',
+                              '24px',
+                            )}
+                            {renderDatumRow(
+                              features.find((f) => f.id === 'datum_axis_y'),
+                              'Y Axis',
+                              '24px',
+                            )}
+                            {renderDatumRow(
+                              features.find((f) => f.id === 'datum_axis_z'),
+                              'Z Axis',
+                              '24px',
+                            )}
+                          </div>
+                        )}
+
+                        {/* Planes Folder */}
+                        <div
+                          onClick={() => setPlanesExpanded(!planesExpanded)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            padding: '4px 12px',
+                            cursor: 'pointer',
+                            gap: '6px',
+                          }}
+                        >
+                          {planesExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                          <span
+                            style={{
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                              color: 'var(--cad-color-text-secondary)',
+                            }}
+                          >
+                            Planes
+                          </span>
+                        </div>
+
+                        {planesExpanded && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                            {renderDatumRow(
+                              features.find((f) => f.id === 'datum_plane_xy'),
+                              'XY Plane',
+                              '24px',
+                            )}
+                            {renderDatumRow(
+                              features.find((f) => f.id === 'datum_plane_yz'),
+                              'YZ Plane',
+                              '24px',
+                            )}
+                            {renderDatumRow(
+                              features.find((f) => f.id === 'datum_plane_zx'),
+                              'ZX Plane',
+                              '24px',
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Render Flat User Features */}
+                  {userFeatures.length === 0 ? (
+                    <div
+                      style={{
+                        color: 'var(--cad-color-text-muted)',
+                        fontSize: '0.8rem',
+                        padding: '12px 6px',
+                        textAlign: 'center',
+                        border: '1px dashed var(--cad-glass-border-base)',
+                        borderRadius: 'var(--cad-radius-sm)',
+                      }}
+                    >
+                      No user features yet. Create sketches or parts to begin.
+                    </div>
+                  ) : (
+                    userFeatures.map((feature) => {
+                      const isActive = feature.id === activeFeatureId;
+                      return (
+                        <div
+                          key={feature.id}
+                          onClick={() => setActiveFeature(feature.id)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '8px 12px',
+                            background: isActive
+                              ? 'var(--cad-glass-bg-hover)'
+                              : 'var(--cad-color-surface-tertiary)',
+                            border: '1px solid',
+                            borderColor: isActive
+                              ? 'var(--cad-color-brand-main)'
+                              : 'var(--cad-glass-border-base)',
+                            borderRadius: 'var(--cad-radius-sm)',
+                            cursor: 'pointer',
+                            transition: 'all var(--cad-transition-fast)',
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: '0.875rem',
+                              fontWeight: isActive ? 600 : 400,
+                              color: isActive
+                                ? 'var(--cad-color-text-primary)'
+                                : 'var(--cad-color-text-secondary)',
+                            }}
+                          >
+                            {feature.name}
+                            {feature.type === 'sketch' && feature.params.converged === false && (
+                              <span
+                                style={{
+                                  fontSize: '0.7rem',
+                                  color: '#ef4444',
+                                  fontWeight: 'bold',
+                                  marginLeft: '8px',
+                                }}
+                              >
+                                (Conflict)
+                              </span>
+                            )}
+                            {feature.type === 'sketch' &&
+                              feature.params.converged !== false &&
+                              feature.params.dof !== undefined && (
+                                <span
+                                  style={{
+                                    fontSize: '0.7rem',
+                                    color:
+                                      (feature.params.dof as number) === 0
+                                        ? '#22c55e'
+                                        : 'var(--cad-color-text-muted)',
+                                    fontWeight:
+                                      (feature.params.dof as number) === 0 ? 'bold' : 'normal',
+                                    marginLeft: '8px',
+                                  }}
+                                >
+                                  ({feature.params.dof as number} DOF)
+                                </span>
+                              )}
+                          </span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteFeature(feature.id);
+                            }}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: 'var(--cad-color-brand-danger)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                            }}
+                            title="Delete Feature"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {renderPropertiesPanel()}

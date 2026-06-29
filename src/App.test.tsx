@@ -27,6 +27,7 @@ vi.mock('three', () => {
     GridHelper: class {
       rotation = { x: 0, y: 0, z: 0 };
       position = { x: 0, y: 0, z: 0 };
+      geometry = { translate: vi.fn() };
     },
     AxesHelper: class {},
     Sprite: class {

@@ -184,25 +184,29 @@ function buildThreeGeometry(shape: BrepShape): THREE.BufferGeometry {
 function createPlaneMeshLabel(text: string, color: string): THREE.Mesh {
   const canvas = document.createElement('canvas');
   canvas.width = 128;
-  canvas.height = 64;
+  canvas.height = 128;
   const ctx = canvas.getContext('2d');
   if (ctx) {
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.4)';
+    ctx.fillStyle = color;
     ctx.beginPath();
-    if (typeof ctx.roundRect === 'function') {
-      ctx.roundRect(0, 0, 128, 64, 12);
-    } else {
-      ctx.rect(0, 0, 128, 64);
-    }
+    const r = 16;
+    ctx.moveTo(8 + r, 8);
+    ctx.lineTo(120 - r, 8);
+    ctx.quadraticCurveTo(120, 8, 120, 8 + r);
+    ctx.lineTo(120, 120 - r);
+    ctx.quadraticCurveTo(120, 120, 120 - r, 120);
+    ctx.lineTo(8 + r, 120);
+    ctx.quadraticCurveTo(8, 120, 8, 120 - r);
+    ctx.lineTo(8, 8 + r);
+    ctx.quadraticCurveTo(8, 8, 8 + r, 8);
+    ctx.closePath();
     ctx.fill();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 4;
-    ctx.stroke();
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 32px sans-serif';
+
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.font = 'bold 54px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(text, 64, 32);
+    ctx.fillText(text, 64, 64);
   }
   const texture = new THREE.CanvasTexture(canvas);
   const material = new THREE.MeshBasicMaterial({
@@ -211,7 +215,7 @@ function createPlaneMeshLabel(text: string, color: string): THREE.Mesh {
     side: THREE.DoubleSide,
     depthWrite: false,
   });
-  const geom = new THREE.PlaneGeometry(10, 5);
+  const geom = new THREE.PlaneGeometry(8, 8);
   const mesh = new THREE.Mesh(geom, material);
   return mesh;
 }
@@ -342,7 +346,6 @@ export default function Viewport3D(): ReactNode {
     }
 
     const planeXYFeat = features.find((f) => f.id === 'datum_plane_xy');
-    const labelOffset = (settings.gridSize / 2) * 0.9;
 
     if (planeXYFeat && planeXYFeat.params.visible !== false) {
       const xyGrid = new THREE.GridHelper(
@@ -351,12 +354,13 @@ export default function Viewport3D(): ReactNode {
         '#475569',
         '#1e293b',
       );
+      xyGrid.geometry?.translate(settings.gridSize / 2, 0, -settings.gridSize / 2);
       xyGrid.rotation.x = Math.PI / 2;
       xyGrid.position.z = -0.01;
       scene.add(xyGrid);
 
       const label = createPlaneMeshLabel('XY', '#ef4444');
-      label.position.set(labelOffset, labelOffset, 0);
+      label.position.set(settings.gridSize - 6, settings.gridSize - 6, 0.01);
       scene.add(label);
 
       const mat = label.material as THREE.MeshBasicMaterial;
@@ -377,12 +381,13 @@ export default function Viewport3D(): ReactNode {
         '#475569',
         '#1e293b',
       );
+      yzGrid.geometry?.translate(settings.gridSize / 2, 0, settings.gridSize / 2);
       yzGrid.rotation.z = Math.PI / 2;
       yzGrid.position.x = -0.01;
       scene.add(yzGrid);
 
       const label = createPlaneMeshLabel('YZ', '#22c55e');
-      label.position.set(0, labelOffset, labelOffset);
+      label.position.set(0.01, settings.gridSize - 6, settings.gridSize - 6);
       label.rotation.y = Math.PI / 2;
       scene.add(label);
 
@@ -404,11 +409,12 @@ export default function Viewport3D(): ReactNode {
         '#475569',
         '#1e293b',
       );
+      zxGrid.geometry?.translate(settings.gridSize / 2, 0, settings.gridSize / 2);
       zxGrid.position.y = -0.01;
       scene.add(zxGrid);
 
       const label = createPlaneMeshLabel('ZX', '#3b82f6');
-      label.position.set(labelOffset, 0, labelOffset);
+      label.position.set(settings.gridSize - 6, 0.01, settings.gridSize - 6);
       label.rotation.x = Math.PI / 2;
       scene.add(label);
 

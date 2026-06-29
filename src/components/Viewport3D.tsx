@@ -147,6 +147,7 @@ function buildThreeGeometry(shape: BrepShape): THREE.BufferGeometry {
 export default function Viewport3D(): ReactNode {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const gizmoCanvasRef = useRef<HTMLCanvasElement>(null);
 
   // Consume features to rebuild meshes when features change
   const { documentState } = useCad();
@@ -164,7 +165,10 @@ export default function Viewport3D(): ReactNode {
     const width = container.clientWidth;
     const height = container.clientHeight;
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-    camera.position.set(50, 50, 100);
+    if (camera.up) {
+      camera.up.set(0, 0, 1); // Z-up orientation
+    }
+    camera.position.set(80, -120, 80);
 
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     renderer.setSize(width, height);
@@ -254,10 +258,61 @@ export default function Viewport3D(): ReactNode {
     }
 
     // 6. Animation loop
+    const gizmoCanvas = gizmoCanvasRef.current;
+    const gizmoCtx = gizmoCanvas?.getContext('2d');
+
     let animationFrameId: number;
     const animate = () => {
       controls.update();
       renderer.render(scene, camera);
+
+      if (gizmoCtx && gizmoCanvas) {
+        gizmoCtx.clearRect(0, 0, gizmoCanvas.width, gizmoCanvas.height);
+
+        const cx = gizmoCanvas.width / 2;
+        const cy = gizmoCanvas.height / 2;
+        const size = 28;
+
+        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+        const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+
+        const axes = [
+          { name: 'X', dir: new THREE.Vector3(1, 0, 0), color: '#ef4444' },
+          { name: 'Y', dir: new THREE.Vector3(0, 1, 0), color: '#22c55e' },
+          { name: 'Z', dir: new THREE.Vector3(0, 0, 1), color: '#3b82f6' },
+        ];
+
+        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+        axes.sort((a, b) => a.dir.dot(forward) - b.dir.dot(forward));
+
+        for (const axis of axes) {
+          const dx = axis.dir.dot(right);
+          const dy = axis.dir.dot(up);
+
+          const ex = cx + dx * size;
+          const ey = cy - dy * size;
+
+          gizmoCtx.beginPath();
+          gizmoCtx.moveTo(cx, cy);
+          gizmoCtx.lineTo(ex, ey);
+          gizmoCtx.strokeStyle = axis.color;
+          gizmoCtx.lineWidth = 3;
+          gizmoCtx.lineCap = 'round';
+          gizmoCtx.stroke();
+
+          gizmoCtx.fillStyle = '#f8fafc';
+          gizmoCtx.font = 'bold 11px sans-serif';
+          gizmoCtx.textAlign = 'center';
+          gizmoCtx.textBaseline = 'middle';
+          gizmoCtx.fillText(axis.name, ex + dx * 8, ey - dy * 8);
+        }
+
+        gizmoCtx.beginPath();
+        gizmoCtx.arc(cx, cy, 3, 0, Math.PI * 2);
+        gizmoCtx.fillStyle = '#64748b';
+        gizmoCtx.fill();
+      }
+
       animationFrameId = requestAnimationFrame(animate);
     };
     animate();
@@ -287,6 +342,19 @@ export default function Viewport3D(): ReactNode {
   return (
     <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
       <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
+      <canvas
+        ref={gizmoCanvasRef}
+        width={100}
+        height={100}
+        style={{
+          position: 'absolute',
+          bottom: '16px',
+          left: '16px',
+          width: '100px',
+          height: '100px',
+          pointerEvents: 'none',
+        }}
+      />
     </div>
   );
 }

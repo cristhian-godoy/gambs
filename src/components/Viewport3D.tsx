@@ -317,7 +317,7 @@ export default function Viewport3D(): ReactNode {
 
     const axisXFeat = features.find((f) => f.id === 'datum_axis_x');
     if (axisXFeat && axisXFeat.params.visible !== false) {
-      const pointsX = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(100, 0, 0)];
+      const pointsX = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(settings.gridSize, 0, 0)];
       const geomX = new THREE.BufferGeometry().setFromPoints(pointsX);
       const matX = new THREE.LineBasicMaterial({ color: '#ef4444' }); // Red
       datumGeometries.push(geomX, matX);
@@ -327,7 +327,7 @@ export default function Viewport3D(): ReactNode {
 
     const axisYFeat = features.find((f) => f.id === 'datum_axis_y');
     if (axisYFeat && axisYFeat.params.visible !== false) {
-      const pointsY = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 100, 0)];
+      const pointsY = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, settings.gridSize, 0)];
       const geomY = new THREE.BufferGeometry().setFromPoints(pointsY);
       const matY = new THREE.LineBasicMaterial({ color: '#22c55e' }); // Green
       datumGeometries.push(geomY, matY);
@@ -337,7 +337,7 @@ export default function Viewport3D(): ReactNode {
 
     const axisZFeat = features.find((f) => f.id === 'datum_axis_z');
     if (axisZFeat && axisZFeat.params.visible !== false) {
-      const pointsZ = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 100)];
+      const pointsZ = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, settings.gridSize)];
       const geomZ = new THREE.BufferGeometry().setFromPoints(pointsZ);
       const matZ = new THREE.LineBasicMaterial({ color: '#3b82f6' }); // Blue
       datumGeometries.push(geomZ, matZ);
@@ -345,22 +345,37 @@ export default function Viewport3D(): ReactNode {
       scene.add(lineZ);
     }
 
+    const gridOffset = 4.0;
+    const actualGridSize = Math.max(1, settings.gridSize - 2 * gridOffset);
+    const actualGridDivisions = Math.max(
+      1,
+      Math.round(settings.gridDivisions * (actualGridSize / settings.gridSize)),
+    );
+
     const planeXYFeat = features.find((f) => f.id === 'datum_plane_xy');
 
     if (planeXYFeat && planeXYFeat.params.visible !== false) {
       const xyGrid = new THREE.GridHelper(
-        settings.gridSize,
-        settings.gridDivisions,
+        actualGridSize,
+        actualGridDivisions,
         '#475569',
         '#1e293b',
       );
-      xyGrid.geometry?.translate(settings.gridSize / 2 + 1.0, 0, -settings.gridSize / 2 - 1.0);
+      xyGrid.geometry?.translate(
+        actualGridSize / 2 + gridOffset,
+        0,
+        -(actualGridSize / 2 + gridOffset),
+      );
       xyGrid.rotation.x = Math.PI / 2;
       xyGrid.position.z = -0.01;
       scene.add(xyGrid);
 
       const label = createPlaneMeshLabel('XY', '#ef4444');
-      label.position.set(settings.gridSize - 6 + 1.0, settings.gridSize - 6 + 1.0, 0.01);
+      label.position.set(
+        settings.gridSize - gridOffset - 4.0,
+        settings.gridSize - gridOffset - 4.0,
+        0.01,
+      );
       scene.add(label);
 
       const mat = label.material as THREE.MeshBasicMaterial;
@@ -376,18 +391,26 @@ export default function Viewport3D(): ReactNode {
     const planeYZFeat = features.find((f) => f.id === 'datum_plane_yz');
     if (planeYZFeat && planeYZFeat.params.visible !== false) {
       const yzGrid = new THREE.GridHelper(
-        settings.gridSize,
-        settings.gridDivisions,
+        actualGridSize,
+        actualGridDivisions,
         '#475569',
         '#1e293b',
       );
-      yzGrid.geometry?.translate(settings.gridSize / 2 + 1.0, 0, settings.gridSize / 2 + 1.0);
+      yzGrid.geometry?.translate(
+        actualGridSize / 2 + gridOffset,
+        0,
+        actualGridSize / 2 + gridOffset,
+      );
       yzGrid.rotation.z = Math.PI / 2;
       yzGrid.position.x = -0.01;
       scene.add(yzGrid);
 
       const label = createPlaneMeshLabel('YZ', '#22c55e');
-      label.position.set(0.01, settings.gridSize - 6 + 1.0, settings.gridSize - 6 + 1.0);
+      label.position.set(
+        0.01,
+        settings.gridSize - gridOffset - 4.0,
+        settings.gridSize - gridOffset - 4.0,
+      );
       label.rotation.y = Math.PI / 2;
       scene.add(label);
 
@@ -404,17 +427,25 @@ export default function Viewport3D(): ReactNode {
     const planeZXFeat = features.find((f) => f.id === 'datum_plane_zx');
     if (planeZXFeat && planeZXFeat.params.visible !== false) {
       const zxGrid = new THREE.GridHelper(
-        settings.gridSize,
-        settings.gridDivisions,
+        actualGridSize,
+        actualGridDivisions,
         '#475569',
         '#1e293b',
       );
-      zxGrid.geometry?.translate(settings.gridSize / 2 + 1.0, 0, settings.gridSize / 2 + 1.0);
+      zxGrid.geometry?.translate(
+        actualGridSize / 2 + gridOffset,
+        0,
+        actualGridSize / 2 + gridOffset,
+      );
       zxGrid.position.y = -0.01;
       scene.add(zxGrid);
 
       const label = createPlaneMeshLabel('ZX', '#3b82f6');
-      label.position.set(settings.gridSize - 6 + 1.0, 0.01, settings.gridSize - 6 + 1.0);
+      label.position.set(
+        settings.gridSize - gridOffset - 4.0,
+        0.01,
+        settings.gridSize - gridOffset - 4.0,
+      );
       label.rotation.x = Math.PI / 2;
       scene.add(label);
 

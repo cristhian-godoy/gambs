@@ -1,0 +1,4 @@
+# Test Directory
+# Contains Vitest environment setup and unit tests.
+setup.ts
+	Vitest environment and global setup stubs.

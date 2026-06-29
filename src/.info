@@ -1,5 +1,7 @@
 App.tsx
 	Main React entry component.
+App.test.tsx
+	Main React component tests.
 main.tsx
 	Vite React TS entry file.
 index.css
@@ -16,3 +18,5 @@ hooks
 	Custom React hooks.
 utils
 	General helper functions and tools.
+test
+	Vitest environment setups and unit tests.

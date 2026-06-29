@@ -240,7 +240,7 @@ export default function Viewport3D(): ReactNode {
 
     const axisYFeat = features.find((f) => f.id === 'datum_axis_y');
     if (axisYFeat && axisYFeat.params.visible !== false) {
-      const pointsY = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -100, 0)];
+      const pointsY = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 100, 0)];
       const geomY = new THREE.BufferGeometry().setFromPoints(pointsY);
       const matY = new THREE.LineBasicMaterial({ color: '#22c55e' }); // Green
       datumGeometries.push(geomY, matY);
@@ -266,7 +266,7 @@ export default function Viewport3D(): ReactNode {
       scene.add(xyGrid);
 
       const label = createPlaneMeshLabel('XY', '#ef4444');
-      label.position.set(45, -45, 0);
+      label.position.set(45, 45, 0);
       scene.add(label);
 
       datumGeometries.push(
@@ -286,7 +286,7 @@ export default function Viewport3D(): ReactNode {
       scene.add(yzGrid);
 
       const label = createPlaneMeshLabel('YZ', '#22c55e');
-      label.position.set(0, -45, 45);
+      label.position.set(0, 45, 45);
       label.rotation.y = Math.PI / 2;
       scene.add(label);
 
@@ -396,7 +396,7 @@ export default function Viewport3D(): ReactNode {
 
         const axes = [
           { name: 'X', dir: new THREE.Vector3(1, 0, 0), color: '#ef4444' },
-          { name: 'Y', dir: new THREE.Vector3(0, -1, 0), color: '#22c55e' },
+          { name: 'Y', dir: new THREE.Vector3(0, 1, 0), color: '#22c55e' },
           { name: 'Z', dir: new THREE.Vector3(0, 0, 1), color: '#3b82f6' },
         ];
 

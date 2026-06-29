@@ -1,4 +1,4 @@
-import { Arc2D, Circle2D, Line2D, Rect2D } from '../core/geometry.ts';
+import type { Arc2D, Circle2D, Line2D, Rect2D } from '../core/geometry.ts';
 
 /**
  * Types of features supported in the CAD parametric model.

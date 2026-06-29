@@ -367,7 +367,14 @@ export default function Toolbar({ onOpenSettings }: ToolbarProps): ReactNode {
         <div className="file-menu-container" style={{ position: 'relative' }}>
           <button
             className="toolbar-btn primary"
-            onClick={() => setFileMenuOpen(!fileMenuOpen)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setFileMenuOpen(!fileMenuOpen);
+              setDesignMenuOpen(false);
+              setModifyMenuOpen(false);
+              setCombineMenuOpen(false);
+              setDrawMenuOpen(false);
+            }}
             title="File Menu"
           >
             <File size={16} /> File

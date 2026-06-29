@@ -1110,7 +1110,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      padding: '4px 12px 4px ' + paddingLeft,
+                      padding: '2px 8px 2px ' + paddingLeft,
                       background: isActive ? 'var(--cad-glass-bg-hover)' : 'transparent',
                       borderLeft: isActive ? '2px solid var(--cad-color-brand-main)' : 'none',
                       borderRadius: 'var(--cad-radius-sm)',
@@ -1119,7 +1119,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                   >
                     <span
                       style={{
-                        fontSize: '0.8rem',
+                        fontSize: '0.75rem',
                         color: isActive
                           ? 'var(--cad-color-text-primary)'
                           : 'var(--cad-color-text-secondary)',
@@ -1153,28 +1153,28 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
               };
 
               return (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   {/* Collapsible Origin Root Node */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                     <div
                       onClick={() => setOriginExpanded(!originExpanded)}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        padding: '6px 12px',
+                        padding: '3px 8px',
                         background: 'var(--cad-color-surface-tertiary)',
                         border: '1px solid var(--cad-glass-border-base)',
                         borderRadius: 'var(--cad-radius-sm)',
                         cursor: 'pointer',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        {originExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                        <FolderTree size={14} style={{ color: 'var(--cad-color-brand-main)' }} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {originExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                        <FolderTree size={12} style={{ color: 'var(--cad-color-brand-main)' }} />
                         <span
                           style={{
-                            fontSize: '0.85rem',
+                            fontSize: '0.8rem',
                             fontWeight: 600,
                             color: 'var(--cad-color-text-primary)',
                           }}
@@ -1393,7 +1393,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            padding: '8px 12px',
+                            padding: '4px 8px',
                             background: isActive
                               ? 'var(--cad-glass-bg-hover)'
                               : 'var(--cad-color-surface-tertiary)',
@@ -1408,7 +1408,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                         >
                           <span
                             style={{
-                              fontSize: '0.875rem',
+                              fontSize: '0.8rem',
                               fontWeight: isActive ? 600 : 400,
                               color: isActive
                                 ? 'var(--cad-color-text-primary)'

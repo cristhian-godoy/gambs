@@ -1,2 +1,6 @@
-# Store Directory
-# Contains state stores and context providers for application-wide status (e.g., Undo/Redo stack, geometry state).
+types.ts
+	Core TypeScript types for CAD features, document, and state.
+cadStore.ts
+	State reducer managing the history timelines and features tree.
+CadContext.tsx
+	React Context and Provider for CAD document state and history controls.

@@ -1,3 +1,4 @@
+import { SketchConstraint, solveSketch } from '../core/solver.ts';
 import { DocumentState, Feature, SketchGeometry } from './types.ts';
 
 /**
@@ -74,9 +75,16 @@ export function cadReducer(state: CadHistoryState, action: CadAction): CadHistor
     case 'UPDATE_FEATURE': {
       const nextFeatures = present.features.map((f) => {
         if (f.id === action.id) {
+          const combinedParams = { ...f.params, ...action.params };
+          if (f.type === 'sketch') {
+            const geometries = (combinedParams.geometries as SketchGeometry[]) || [];
+            const constraints = (combinedParams.constraints as SketchConstraint[]) || [];
+            const solvedGeometries = solveSketch(geometries, constraints);
+            combinedParams.geometries = solvedGeometries;
+          }
           return {
             ...f,
-            params: { ...f.params, ...action.params },
+            params: combinedParams,
           };
         }
         return f;
@@ -182,11 +190,14 @@ export function cadReducer(state: CadHistoryState, action: CadAction): CadHistor
       const nextFeatures = present.features.map((f) => {
         if (f.id === present.activeSketchId) {
           const currentGeometries = (f.params.geometries as SketchGeometry[]) || [];
+          const constraints = (f.params.constraints as SketchConstraint[]) || [];
+          const newGeometries = [...currentGeometries, action.geometry];
+          const solvedGeometries = solveSketch(newGeometries, constraints);
           return {
             ...f,
             params: {
               ...f.params,
-              geometries: [...currentGeometries, action.geometry],
+              geometries: solvedGeometries,
             },
           };
         }

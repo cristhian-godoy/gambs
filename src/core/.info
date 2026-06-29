@@ -2,3 +2,7 @@ geometry.ts
 	Geometrical data structures, math utilities, renderers, and bounding box calculators.
 geometry.test.ts
 	Unit tests for geometrical math calculations and bounding boxes.
+solver.ts
+	Non-linear numerical Newton-Raphson 2D CAD constraint solver engine.
+solver.test.ts
+	Unit tests for the CAD constraint solver engine.

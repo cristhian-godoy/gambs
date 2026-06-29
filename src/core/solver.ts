@@ -95,6 +95,7 @@ export function solveSketch(
   // Each constraint might output 1 or 2 equations
   interface Equation {
     evaluate: (x: number[]) => number;
+    gradient: (x: number[]) => Record<number, number>;
   }
 
   const equations: Equation[] = [];
@@ -168,12 +169,24 @@ export function solveSketch(
             const x2 = p2.xIdx !== -1 ? x[p2.xIdx] : p2.fixedX!;
             return x1 - x2;
           },
+          gradient: () => {
+            const grad: Record<number, number> = {};
+            if (p1.xIdx !== -1) grad[p1.xIdx] = 1;
+            if (p2.xIdx !== -1) grad[p2.xIdx] = -1;
+            return grad;
+          },
         });
         equations.push({
           evaluate: (x) => {
             const y1 = p1.yIdx !== -1 ? x[p1.yIdx] : p1.fixedY!;
             const y2 = p2.yIdx !== -1 ? x[p2.yIdx] : p2.fixedY!;
             return y1 - y2;
+          },
+          gradient: () => {
+            const grad: Record<number, number> = {};
+            if (p1.yIdx !== -1) grad[p1.yIdx] = 1;
+            if (p2.yIdx !== -1) grad[p2.yIdx] = -1;
+            return grad;
           },
         });
         break;
@@ -187,6 +200,7 @@ export function solveSketch(
         if (syIdx !== -1 && eyIdx !== -1) {
           equations.push({
             evaluate: (x) => x[syIdx] - x[eyIdx],
+            gradient: () => ({ [syIdx]: 1, [eyIdx]: -1 }),
           });
         }
         break;
@@ -200,6 +214,7 @@ export function solveSketch(
         if (sxIdx !== -1 && exIdx !== -1) {
           equations.push({
             evaluate: (x) => x[sxIdx] - x[exIdx],
+            gradient: () => ({ [sxIdx]: 1, [exIdx]: -1 }),
           });
         }
         break;
@@ -221,6 +236,20 @@ export function solveSketch(
             const dy = y1 - y2;
             return dx * dx + dy * dy - targetDist * targetDist;
           },
+          gradient: (x) => {
+            const x1 = p1.xIdx !== -1 ? x[p1.xIdx] : p1.fixedX!;
+            const y1 = p1.yIdx !== -1 ? x[p1.yIdx] : p1.fixedY!;
+            const x2 = p2.xIdx !== -1 ? x[p2.xIdx] : p2.fixedX!;
+            const y2 = p2.yIdx !== -1 ? x[p2.yIdx] : p2.fixedY!;
+            const dx = x1 - x2;
+            const dy = y1 - y2;
+            const grad: Record<number, number> = {};
+            if (p1.xIdx !== -1) grad[p1.xIdx] = 2 * dx;
+            if (p2.xIdx !== -1) grad[p2.xIdx] = -2 * dx;
+            if (p1.yIdx !== -1) grad[p1.yIdx] = 2 * dy;
+            if (p2.yIdx !== -1) grad[p2.yIdx] = -2 * dy;
+            return grad;
+          },
         });
         break;
       }
@@ -232,6 +261,7 @@ export function solveSketch(
         if (rIdx !== -1 && targetRadius !== undefined) {
           equations.push({
             evaluate: (x) => x[rIdx] - targetRadius,
+            gradient: () => ({ [rIdx]: 1 }),
           });
         }
         break;
@@ -256,6 +286,22 @@ export function solveSketch(
               const lx2 = x[ex];
               const ly2 = x[ey];
               return (px - lx1) * (ly2 - ly1) - (py - ly1) * (lx2 - lx1);
+            },
+            gradient: (x) => {
+              const px = p.xIdx !== -1 ? x[p.xIdx] : p.fixedX!;
+              const py = p.yIdx !== -1 ? x[p.yIdx] : p.fixedY!;
+              const lx1 = x[sx];
+              const ly1 = x[sy];
+              const lx2 = x[ex];
+              const ly2 = x[ey];
+              const grad: Record<number, number> = {};
+              if (p.xIdx !== -1) grad[p.xIdx] = ly2 - ly1;
+              if (p.yIdx !== -1) grad[p.yIdx] = lx1 - lx2;
+              grad[sx] = py - ly2;
+              grad[sy] = lx2 - px;
+              grad[ex] = ly1 - py;
+              grad[ey] = px - lx1;
+              return grad;
             },
           });
         }
@@ -302,6 +348,39 @@ export function solveSketch(
                 const den = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
                 return num * num - radius * radius * den;
               },
+              gradient: (x) => {
+                const x1 = x[sx];
+                const y1 = x[sy];
+                const x2 = x[ex];
+                const y2 = x[ey];
+                const xo = x[cx];
+                const yo = x[cy];
+                const radius = x[r];
+                const num = (y2 - y1) * xo - (x2 - x1) * yo + x2 * y1 - y2 * x1;
+                const den = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+
+                const grad: Record<number, number> = {};
+                const dnum_dxo = y2 - y1;
+                const dnum_dyo = x1 - x2;
+                const dnum_dx1 = yo - y2;
+                const dnum_dy1 = x2 - xo;
+                const dnum_dx2 = y1 - yo;
+                const dnum_dy2 = xo - x1;
+
+                const dden_dx1 = -2 * (x2 - x1);
+                const dden_dy1 = -2 * (y2 - y1);
+                const dden_dx2 = 2 * (x2 - x1);
+                const dden_dy2 = 2 * (y2 - y1);
+
+                grad[cx] = 2 * num * dnum_dxo;
+                grad[cy] = 2 * num * dnum_dyo;
+                grad[sx] = 2 * num * dnum_dx1 - radius * radius * dden_dx1;
+                grad[sy] = 2 * num * dnum_dy1 - radius * radius * dden_dy1;
+                grad[ex] = 2 * num * dnum_dx2 - radius * radius * dden_dx2;
+                grad[ey] = 2 * num * dnum_dy2 - radius * radius * dden_dy2;
+                grad[r] = -2 * radius * den;
+                return grad;
+              },
             });
           }
         } else if (isCircle1 && isCircle2) {
@@ -326,6 +405,26 @@ export function solveSketch(
                 const dy = y1 - y2;
                 const rSum = radius1 + radius2;
                 return dx * dx + dy * dy - rSum * rSum;
+              },
+              gradient: (x) => {
+                const x1 = x[cx1];
+                const y1 = x[cy1];
+                const radius1 = x[r1];
+                const x2 = x[cx2];
+                const y2 = x[cy2];
+                const radius2 = x[r2];
+                const dx = x1 - x2;
+                const dy = y1 - y2;
+                const rSum = radius1 + radius2;
+
+                const grad: Record<number, number> = {};
+                grad[cx1] = 2 * dx;
+                grad[cx2] = -2 * dx;
+                grad[cy1] = 2 * dy;
+                grad[cy2] = -2 * dy;
+                grad[r1] = -2 * rSum;
+                grad[r2] = -2 * rSum;
+                return grad;
               },
             });
           }
@@ -365,6 +464,22 @@ export function solveSketch(
               // Cross product = 0
               return dx1 * dy2 - dy1 * dx2;
             },
+            gradient: (x) => {
+              const dx1 = x[ex1] - x[sx1];
+              const dy1 = x[ey1] - x[sy1];
+              const dx2 = x[ex2] - x[sx2];
+              const dy2 = x[ey2] - x[sy2];
+              const grad: Record<number, number> = {};
+              grad[ex1] = dy2;
+              grad[sx1] = -dy2;
+              grad[ey1] = -dx2;
+              grad[sy1] = dx2;
+              grad[ex2] = -dy1;
+              grad[sx2] = dy1;
+              grad[ey2] = dx1;
+              grad[sy2] = -dx1;
+              return grad;
+            },
           });
         }
         break;
@@ -401,6 +516,22 @@ export function solveSketch(
               const dy2 = x[ey2] - x[sy2];
               // Dot product = 0
               return dx1 * dx2 + dy1 * dy2;
+            },
+            gradient: (x) => {
+              const dx1 = x[ex1] - x[sx1];
+              const dy1 = x[ey1] - x[sy1];
+              const dx2 = x[ex2] - x[sx2];
+              const dy2 = x[ey2] - x[sy2];
+              const grad: Record<number, number> = {};
+              grad[ex1] = dx2;
+              grad[sx1] = -dx2;
+              grad[ey1] = dy2;
+              grad[sy1] = -dy2;
+              grad[ex2] = dx1;
+              grad[sx2] = -dx1;
+              grad[ey2] = dy1;
+              grad[sy2] = -dy1;
+              return grad;
             },
           });
         }
@@ -445,6 +576,32 @@ export function solveSketch(
               const cosTheta = Math.cos(targetAngle);
               return dotProd - Math.sqrt(len1Sqr * len2Sqr) * cosTheta;
             },
+            gradient: (x) => {
+              const dx1 = x[ex1] - x[sx1];
+              const dy1 = x[ey1] - x[sy1];
+              const dx2 = x[ex2] - x[sx2];
+              const dy2 = x[ey2] - x[sy2];
+
+              const len1 = Math.sqrt(dx1 * dx1 + dy1 * dy1) || 1e-9;
+              const len2 = Math.sqrt(dx2 * dx2 + dy2 * dy2) || 1e-9;
+              const cosTheta = Math.cos(targetAngle);
+
+              const grad: Record<number, number> = {};
+              const df_dex1 = dx2 - (dx1 / len1) * len2 * cosTheta;
+              const df_dey1 = dy2 - (dy1 / len1) * len2 * cosTheta;
+              const df_dex2 = dx1 - (dx2 / len2) * len1 * cosTheta;
+              const df_dey2 = dy1 - (dy2 / len2) * len1 * cosTheta;
+
+              grad[ex1] = df_dex1;
+              grad[sx1] = -df_dex1;
+              grad[ey1] = df_dey1;
+              grad[sy1] = -df_dey1;
+              grad[ex2] = df_dex2;
+              grad[sx2] = -df_dex2;
+              grad[ey2] = df_dey2;
+              grad[sy2] = -df_dey2;
+              return grad;
+            },
           });
         }
         break;
@@ -453,16 +610,18 @@ export function solveSketch(
       case 'fixed': {
         const p = resolvePointIndex(c.targets[0]);
         const fx = c.value !== undefined ? c.value : 0;
-        const fy = c.value !== undefined ? c.value : 0; // standard fixed can pass coordinate properties, default to 0
+        const fy = c.value !== undefined ? c.value : 0;
 
         if (p.xIdx !== -1) {
           equations.push({
             evaluate: (x) => x[p.xIdx] - fx,
+            gradient: () => ({ [p.xIdx]: 1 }),
           });
         }
         if (p.yIdx !== -1) {
           equations.push({
             evaluate: (x) => x[p.yIdx] - fy,
+            gradient: () => ({ [p.yIdx]: 1 }),
           });
         }
         break;
@@ -479,7 +638,6 @@ export function solveSketch(
   // 3. Newton-Raphson Solver loop
   const maxIterations = 50;
   const tolerance = 1e-6;
-  const h = 1e-8; // step size for numerical differentiation
 
   for (let iter = 0; iter < maxIterations; iter++) {
     const x = getX();
@@ -494,18 +652,15 @@ export function solveSketch(
       break; // converged!
     }
 
-    // Compute Jacobian matrix J (m x n) numerically
+    // Compute Jacobian matrix J (m x n) analytically
     const J: number[][] = Array.from({ length: m }, () => Array(n).fill(0));
     for (let i = 0; i < m; i++) {
-      for (let j = 0; j < n; j++) {
-        // Central difference
-        const temp = x[j];
-        x[j] = temp + h;
-        const fPlus = equations[i].evaluate(x);
-        x[j] = temp - h;
-        const fMinus = equations[i].evaluate(x);
-        x[j] = temp; // restore
-        J[i][j] = (fPlus - fMinus) / (2 * h);
+      const grad = equations[i].gradient(x);
+      for (const idxStr of Object.keys(grad)) {
+        const idx = Number(idxStr);
+        if (idx >= 0 && idx < n) {
+          J[i][idx] = grad[idx];
+        }
       }
     }
 
@@ -601,17 +756,15 @@ export function solveSketch(
   }
   const converged = Math.sqrt(finalError) < tolerance;
 
-  // Calculate numerical Jacobian rank for DOF computation
+  // Calculate analytic Jacobian rank for DOF computation
   const J: number[][] = Array.from({ length: m }, () => Array(n).fill(0));
   for (let i = 0; i < m; i++) {
-    for (let j = 0; j < n; j++) {
-      const temp = finalX[j];
-      finalX[j] = temp + h;
-      const fPlus = equations[i].evaluate(finalX);
-      finalX[j] = temp - h;
-      const fMinus = equations[i].evaluate(finalX);
-      finalX[j] = temp;
-      J[i][j] = (fPlus - fMinus) / (2 * h);
+    const grad = equations[i].gradient(finalX);
+    for (const idxStr of Object.keys(grad)) {
+      const idx = Number(idxStr);
+      if (idx >= 0 && idx < n) {
+        J[i][idx] = grad[idx];
+      }
     }
   }
 

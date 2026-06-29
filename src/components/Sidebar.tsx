@@ -43,7 +43,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
   const [dragging, setDragging] = useState(false);
   const isDragging = useRef(false);
 
-  const [originExpanded, setOriginExpanded] = useState(true);
+  const [originExpanded, setOriginExpanded] = useState(false);
   const [axesExpanded, setAxesExpanded] = useState(false);
   const [planesExpanded, setPlanesExpanded] = useState(false);
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
@@ -1042,7 +1042,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
     localOriginPoints: Feature[];
   }) => {
     const localOriginExpandedKey = `origin_${nodeId}`;
-    const isLocalOriginExpanded = expandedNodes[localOriginExpandedKey] !== false;
+    const isLocalOriginExpanded = expandedNodes[localOriginExpandedKey] === true;
 
     const axisFeatures = localOriginPoints.filter((f) => f.id.includes('axis_'));
     const planeFeatures = localOriginPoints.filter((f) => f.id.includes('plane_'));
@@ -1203,7 +1203,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
               onClick={() => toggleNode(`axes_${nodeId}`)}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                {expandedNodes[`axes_${nodeId}`] !== false ? (
+                {expandedNodes[`axes_${nodeId}`] === true ? (
                   <ChevronDown size={12} />
                 ) : (
                   <ChevronRight size={12} />
@@ -1238,7 +1238,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                 {areAxesVisible ? <Eye size={12} /> : <EyeOff size={12} />}
               </button>
             </div>
-            {expandedNodes[`axes_${nodeId}`] !== false && (
+            {expandedNodes[`axes_${nodeId}`] === true && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                 {renderLocalDatumRow(
                   axisFeatures.find((f) => f.id.includes('axis_x')),
@@ -1270,7 +1270,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
               onClick={() => toggleNode(`planes_${nodeId}`)}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                {expandedNodes[`planes_${nodeId}`] !== false ? (
+                {expandedNodes[`planes_${nodeId}`] === true ? (
                   <ChevronDown size={12} />
                 ) : (
                   <ChevronRight size={12} />
@@ -1305,7 +1305,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                 {arePlanesVisible ? <Eye size={12} /> : <EyeOff size={12} />}
               </button>
             </div>
-            {expandedNodes[`planes_${nodeId}`] !== false && (
+            {expandedNodes[`planes_${nodeId}`] === true && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                 {renderLocalDatumRow(
                   planeFeatures.find((f) => f.id.includes('plane_xy')),
@@ -1694,7 +1694,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                             color: 'var(--cad-color-text-primary)',
                           }}
                         >
-                          Origin
+                          Canvas Origin
                         </span>
                       </div>
                       {globalOriginFeat && (

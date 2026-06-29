@@ -33,7 +33,7 @@ export const initialDocumentState: DocumentState = {
     {
       id: 'datum_origin',
       type: 'sketch',
-      name: 'Origin',
+      name: 'Canvas Origin',
       params: { visible: true, isDatum: true, geometries: [], constraints: [] },
       dependencies: [],
     },

@@ -56,4 +56,5 @@ export interface DocumentState {
   activeFeatureId: string | null;
   activeSketchId: string | null;
   activeBodyId?: string | null;
+  activePartId?: string | null;
 }

@@ -4,6 +4,10 @@ import {
   CircleDot,
   Compass,
   CornerDownRight,
+  Download,
+  File,
+  FilePlus,
+  FolderOpen,
   Link as LinkIcon,
   Lock,
   MousePointer,
@@ -11,10 +15,12 @@ import {
   MoveUp,
   Redo2,
   Ruler,
+  Save,
   Slash,
   Square,
   ToggleLeft,
   Undo2,
+  Upload,
 } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
@@ -272,7 +278,7 @@ export default function Toolbar(): ReactNode {
             onClick={() => setFileMenuOpen(!fileMenuOpen)}
             title="File Menu"
           >
-            <span>📁</span> File
+            <File size={16} /> File
           </button>
 
           {fileMenuOpen && (
@@ -301,11 +307,11 @@ export default function Toolbar(): ReactNode {
                   setFileMenuOpen(false);
                 }}
               >
-                <span>➕</span> New Project
+                <FilePlus size={14} /> New Project
               </button>
 
-              <label className="dropdown-item">
-                <span>📂</span> Open Project
+              <label className="dropdown-item" style={{ cursor: 'pointer' }}>
+                <FolderOpen size={14} /> Open Project
                 <input
                   type="file"
                   accept=".json"
@@ -321,7 +327,7 @@ export default function Toolbar(): ReactNode {
                   setFileMenuOpen(false);
                 }}
               >
-                <span>💾</span> Save Project
+                <Save size={14} /> Save Project
               </button>
 
               <div
@@ -334,7 +340,7 @@ export default function Toolbar(): ReactNode {
 
               <div
                 style={{
-                  padding: '4px 12px',
+                  padding: '4px 16px',
                   fontSize: '0.75rem',
                   color: 'var(--cad-color-text-muted)',
                   fontWeight: 600,
@@ -351,7 +357,7 @@ export default function Toolbar(): ReactNode {
                   setFileMenuOpen(false);
                 }}
               >
-                <span>📤</span> Export STL
+                <Download size={14} /> Export STL
               </button>
 
               <button
@@ -361,7 +367,7 @@ export default function Toolbar(): ReactNode {
                   setFileMenuOpen(false);
                 }}
               >
-                <span>📤</span> Export OBJ
+                <Download size={14} /> Export OBJ
               </button>
 
               <button
@@ -371,11 +377,11 @@ export default function Toolbar(): ReactNode {
                   setFileMenuOpen(false);
                 }}
               >
-                <span>📤</span> Export STEP
+                <Download size={14} /> Export STEP
               </button>
 
-              <label className="dropdown-item">
-                <span>📥</span> Import STEP
+              <label className="dropdown-item" style={{ cursor: 'pointer' }}>
+                <Upload size={14} /> Import STEP
                 <input
                   type="file"
                   accept=".stp,.step"

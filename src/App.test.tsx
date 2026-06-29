@@ -25,9 +25,31 @@ vi.mock('three', () => {
       }
     },
     GridHelper: class {
-      rotation = { x: 0 };
+      rotation = { x: 0, y: 0, z: 0 };
+      position = { x: 0, y: 0, z: 0 };
     },
     AxesHelper: class {},
+    Sprite: class {
+      position = {
+        set(x: number, y: number, z: number) {
+          this.x = x;
+          this.y = y;
+          this.z = z;
+        },
+        x: 0,
+        y: 0,
+        z: 0,
+      };
+      scale = { set: vi.fn() };
+      material = { dispose: vi.fn(), map: { dispose: vi.fn() } };
+    },
+    SpriteMaterial: class {
+      dispose = vi.fn();
+      map = { dispose: vi.fn() };
+    },
+    CanvasTexture: class {
+      dispose = vi.fn();
+    },
     HemisphereLight: class {
       position = { set: vi.fn() };
     },

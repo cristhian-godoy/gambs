@@ -138,6 +138,38 @@ function buildThreeGeometry(shape: BrepShape): THREE.BufferGeometry {
   geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
   return geometry;
 }
+/**
+ * Helper to build a Sprite representing a plane label (e.g. XY, YZ, ZX).
+ */
+function createPlaneLabel(text: string, color: string): THREE.Sprite {
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 32;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+    ctx.beginPath();
+    if (typeof ctx.roundRect === 'function') {
+      ctx.roundRect(0, 0, 64, 32, 6);
+    } else {
+      ctx.rect(0, 0, 64, 32);
+    }
+    ctx.fill();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 32, 16);
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+  const sprite = new THREE.Sprite(material);
+  sprite.scale.set(10, 5, 1);
+  return sprite;
+}
 
 /**
  * Interactive 3D viewport using Three.js for CAD model visualization.
@@ -223,25 +255,58 @@ export default function Viewport3D(): ReactNode {
 
     const planeXYFeat = features.find((f) => f.id === 'datum_plane_xy');
     if (planeXYFeat && planeXYFeat.params.visible !== false) {
-      const xyGrid = new THREE.GridHelper(100, 20, '#ef4444', '#334155');
+      const xyGrid = new THREE.GridHelper(100, 20, '#475569', '#1e293b');
       xyGrid.rotation.x = Math.PI / 2;
+      xyGrid.position.z = -0.01;
       scene.add(xyGrid);
-      datumGeometries.push(xyGrid.geometry, xyGrid.material as THREE.Material);
+
+      const label = createPlaneLabel('XY', '#ef4444');
+      label.position.set(50, 50, 0);
+      scene.add(label);
+
+      datumGeometries.push(
+        xyGrid.geometry,
+        xyGrid.material as THREE.Material,
+        label.material,
+        label.material.map!,
+      );
     }
 
     const planeYZFeat = features.find((f) => f.id === 'datum_plane_yz');
     if (planeYZFeat && planeYZFeat.params.visible !== false) {
-      const yzGrid = new THREE.GridHelper(100, 20, '#22c55e', '#334155');
+      const yzGrid = new THREE.GridHelper(100, 20, '#475569', '#1e293b');
       yzGrid.rotation.z = Math.PI / 2;
+      yzGrid.position.x = -0.01;
       scene.add(yzGrid);
-      datumGeometries.push(yzGrid.geometry, yzGrid.material as THREE.Material);
+
+      const label = createPlaneLabel('YZ', '#22c55e');
+      label.position.set(0, 50, 50);
+      scene.add(label);
+
+      datumGeometries.push(
+        yzGrid.geometry,
+        yzGrid.material as THREE.Material,
+        label.material,
+        label.material.map!,
+      );
     }
 
     const planeZXFeat = features.find((f) => f.id === 'datum_plane_zx');
     if (planeZXFeat && planeZXFeat.params.visible !== false) {
-      const zxGrid = new THREE.GridHelper(100, 20, '#3b82f6', '#334155');
+      const zxGrid = new THREE.GridHelper(100, 20, '#475569', '#1e293b');
+      zxGrid.position.y = -0.01;
       scene.add(zxGrid);
-      datumGeometries.push(zxGrid.geometry, zxGrid.material as THREE.Material);
+
+      const label = createPlaneLabel('ZX', '#3b82f6');
+      label.position.set(50, 0, 50);
+      scene.add(label);
+
+      datumGeometries.push(
+        zxGrid.geometry,
+        zxGrid.material as THREE.Material,
+        label.material,
+        label.material.map!,
+      );
     }
 
     // 4. Lights

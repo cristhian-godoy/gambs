@@ -1,0 +1,12 @@
+/* Design System Tokens */
+:root {
+  color-scheme: dark;
+  --cad-color-surface-base: hsl(220deg 25% 7%);
+  --cad-color-text-primary: hsl(220deg 20% 95%);
+}
+body {
+  background-color: var(--cad-color-surface-base);
+  color: var(--cad-color-text-primary);
+  margin: 0;
+  font-family: sans-serif;
+}

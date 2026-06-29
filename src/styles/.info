@@ -1,0 +1,8 @@
+# Styles Directory
+# Contains design tokens, global layouts, and components styling.
+variables.css
+	Theme and styling variables.
+layout.css
+	Main application layout stylesheets.
+components.css
+	Styling rules for UI widgets.

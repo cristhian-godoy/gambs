@@ -1,0 +1,2 @@
+# Store Directory
+# Contains state stores and context providers for application-wide status (e.g., Undo/Redo stack, geometry state).

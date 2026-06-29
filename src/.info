@@ -1,0 +1,18 @@
+App.tsx
+	Main React entry component.
+main.tsx
+	Vite React TS entry file.
+index.css
+	Main CSS stylesheet importing other styles.
+components
+	React presentation and view components.
+core
+	Foundational CAD engine, geometry modules, and mathematical utilities.
+styles
+	Theme variables, global layouts, and element styling.
+store
+	State management and context definitions (e.g., Undo/Redo history, document state).
+hooks
+	Custom React hooks.
+utils
+	General helper functions and tools.

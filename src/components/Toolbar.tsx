@@ -1,33 +1,47 @@
 import {
+  Activity,
   AlignJustify,
+  Box,
   Circle,
   CircleDot,
   Compass,
+  Copy,
   CornerDownRight,
   Download,
   File,
   FilePlus,
   FolderOpen,
+  GitMerge,
+  Intersect,
+  Layers,
+  LayoutGrid,
   Link as LinkIcon,
   Lock,
+  Minus,
   MoveRight,
   MoveUp,
+  PenTool,
+  Plus,
   Redo2,
+  RotateCw,
   Ruler,
   Save,
+  Scissors,
   Settings,
   Slash,
+  Sliders,
+  Sparkles,
   Square,
   ToggleLeft,
   Triangle,
   Undo2,
   Upload,
 } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 
 import { buildSolidFromFeatures } from '../core/brep.ts';
 import { type SelectedElement, useCad } from '../store/CadContext.tsx';
-import type { SketchGeometry } from '../store/types.ts';
+import type { FeatureType, SketchGeometry } from '../store/types.ts';
 import { exportToObj, exportToStep, exportToStl, importFromStep } from '../utils/exporters.ts';
 
 interface ToolbarProps {
@@ -57,14 +71,62 @@ export default function Toolbar({ onOpenSettings }: ToolbarProps): ReactNode {
     selectionFilter,
     setSelectionFilter,
     exitSketchEdit,
+    setIsSelectingSupportPlane,
+    enterSketchEdit,
   } = useCad();
 
-  const { activeSketchId, features } = documentState;
+  const { activeSketchId, features, activeFeatureId } = documentState;
   const activeSketch = features.find((f) => f.id === activeSketchId);
   const geometries = (activeSketch?.params.geometries as SketchGeometry[]) || [];
 
   const [fileMenuOpen, setFileMenuOpen] = useState(false);
   const [drawMenuOpen, setDrawMenuOpen] = useState(false);
+  const [designMenuOpen, setDesignMenuOpen] = useState(false);
+  const [modifyMenuOpen, setModifyMenuOpen] = useState(false);
+  const [combineMenuOpen, setCombineMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleOutsideClick = () => {
+      setFileMenuOpen(false);
+      setDesignMenuOpen(false);
+      setModifyMenuOpen(false);
+      setCombineMenuOpen(false);
+      setDrawMenuOpen(false);
+    };
+    window.addEventListener('click', handleOutsideClick);
+    return () => {
+      window.removeEventListener('click', handleOutsideClick);
+    };
+  }, []);
+
+  const handleAddFeature = (type: FeatureType) => {
+    if (type === 'sketch') {
+      const selectedPlane = features.find(
+        (f) => f.id === activeFeatureId && f.params.isDatum && f.id.includes('plane'),
+      );
+      if (selectedPlane) {
+        const count = features.filter((f) => f.type === 'sketch' && !f.params.isDatum).length + 1;
+        const name = `Sketch ${count}`;
+        const dependencies = [selectedPlane.id];
+        const newSketchId = addFeature(
+          'sketch',
+          name,
+          { supportPlaneId: selectedPlane.id, geometries: [], constraints: [] },
+          dependencies,
+        );
+        setIsSelectingSupportPlane(false);
+        enterSketchEdit(newSketchId);
+      } else {
+        setIsSelectingSupportPlane(true);
+      }
+      return;
+    }
+
+    const count = features.filter((f) => f.type === type).length + 1;
+    const name = `${type.charAt(0).toUpperCase() + type.slice(1)} ${count}`;
+    const dependencies = features.length > 0 ? [features[features.length - 1].id] : [];
+    addFeature(type, name, {}, dependencies);
+  };
 
   const handleSaveProject = () => {
     const dataStr = JSON.stringify(documentState, null, 2);
@@ -426,6 +488,292 @@ export default function Toolbar({ onOpenSettings }: ToolbarProps): ReactNode {
             </div>
           )}
         </div>
+
+        <div className="design-menu-container" style={{ position: 'relative' }}>
+          <button
+            className="toolbar-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              setDesignMenuOpen(!designMenuOpen);
+              setFileMenuOpen(false);
+              setModifyMenuOpen(false);
+              setCombineMenuOpen(false);
+            }}
+            title="Design Menu"
+          >
+            <Sparkles size={16} /> Design
+          </button>
+
+          {designMenuOpen && (
+            <div
+              className="dropdown-menu"
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                backgroundColor: 'var(--cad-color-surface-elevated)',
+                border: '1px solid var(--cad-glass-border-base)',
+                borderRadius: 'var(--cad-radius-md)',
+                boxShadow: 'var(--cad-shadow-glow)',
+                zIndex: 100,
+                display: 'flex',
+                flexDirection: 'column',
+                minWidth: '180px',
+                padding: '4px 0',
+                marginTop: '4px',
+              }}
+            >
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  handleAddFeature('sketch');
+                  setDesignMenuOpen(false);
+                }}
+              >
+                <PenTool size={14} /> Sketch
+              </button>
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  handleAddFeature('pad');
+                  setDesignMenuOpen(false);
+                }}
+              >
+                <Box size={14} /> Pad
+              </button>
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  handleAddFeature('revolution');
+                  setDesignMenuOpen(false);
+                }}
+              >
+                <RotateCw size={14} /> Revolve
+              </button>
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  handleAddFeature('loft');
+                  setDesignMenuOpen(false);
+                }}
+              >
+                <Layers size={14} /> Loft
+              </button>
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  handleAddFeature('pipe');
+                  setDesignMenuOpen(false);
+                }}
+              >
+                <MoveRight size={14} /> Pipe
+              </button>
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  handleAddFeature('helix');
+                  setDesignMenuOpen(false);
+                }}
+              >
+                <Activity size={14} /> Helix
+              </button>
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  handleAddFeature('pocket');
+                  setDesignMenuOpen(false);
+                }}
+              >
+                <Scissors size={14} /> Pocket
+              </button>
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  handleAddFeature('groove');
+                  setDesignMenuOpen(false);
+                }}
+              >
+                <Sliders size={14} /> Groove
+              </button>
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  handleAddFeature('hole');
+                  setDesignMenuOpen(false);
+                }}
+              >
+                <CircleDot size={14} /> Hole
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="modify-menu-container" style={{ position: 'relative' }}>
+          <button
+            className="toolbar-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              setModifyMenuOpen(!modifyMenuOpen);
+              setFileMenuOpen(false);
+              setDesignMenuOpen(false);
+              setCombineMenuOpen(false);
+            }}
+            title="Modify Menu"
+          >
+            <Sliders size={16} /> Modify
+          </button>
+
+          {modifyMenuOpen && (
+            <div
+              className="dropdown-menu"
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                backgroundColor: 'var(--cad-color-surface-elevated)',
+                border: '1px solid var(--cad-glass-border-base)',
+                borderRadius: 'var(--cad-radius-md)',
+                boxShadow: 'var(--cad-shadow-glow)',
+                zIndex: 100,
+                display: 'flex',
+                flexDirection: 'column',
+                minWidth: '180px',
+                padding: '4px 0',
+                marginTop: '4px',
+              }}
+            >
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  handleAddFeature('fillet');
+                  setModifyMenuOpen(false);
+                }}
+              >
+                <CornerDownRight size={14} /> Fillet
+              </button>
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  handleAddFeature('chamfer');
+                  setModifyMenuOpen(false);
+                }}
+              >
+                <Slash size={14} /> Chamfer
+              </button>
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  handleAddFeature('draft');
+                  setModifyMenuOpen(false);
+                }}
+              >
+                <MoveUp size={14} /> Draft
+              </button>
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  handleAddFeature('thickness');
+                  setModifyMenuOpen(false);
+                }}
+              >
+                <Square size={14} /> Shell
+              </button>
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  handleAddFeature('linear_pattern');
+                  setModifyMenuOpen(false);
+                }}
+              >
+                <LayoutGrid size={14} /> Linear Pattern
+              </button>
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  handleAddFeature('polar_pattern');
+                  setModifyMenuOpen(false);
+                }}
+              >
+                <RotateCw size={14} /> Polar Pattern
+              </button>
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  handleAddFeature('mirror');
+                  setModifyMenuOpen(false);
+                }}
+              >
+                <Copy size={14} /> Mirror
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="combine-menu-container" style={{ position: 'relative' }}>
+          <button
+            className="toolbar-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              setCombineMenuOpen(!combineMenuOpen);
+              setFileMenuOpen(false);
+              setDesignMenuOpen(false);
+              setModifyMenuOpen(false);
+            }}
+            title="Combine Menu"
+          >
+            <GitMerge size={16} /> Combine
+          </button>
+
+          {combineMenuOpen && (
+            <div
+              className="dropdown-menu"
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                backgroundColor: 'var(--cad-color-surface-elevated)',
+                border: '1px solid var(--cad-glass-border-base)',
+                borderRadius: 'var(--cad-radius-md)',
+                boxShadow: 'var(--cad-shadow-glow)',
+                zIndex: 100,
+                display: 'flex',
+                flexDirection: 'column',
+                minWidth: '180px',
+                padding: '4px 0',
+                marginTop: '4px',
+              }}
+            >
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  handleAddFeature('union');
+                  setCombineMenuOpen(false);
+                }}
+              >
+                <Plus size={14} /> Union
+              </button>
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  handleAddFeature('difference');
+                  setCombineMenuOpen(false);
+                }}
+              >
+                <Minus size={14} /> Difference
+              </button>
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  handleAddFeature('intersection');
+                  setCombineMenuOpen(false);
+                }}
+              >
+                <Intersect size={14} /> Intersect
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Selection Filter group */}
         <div
           className="filter-group"

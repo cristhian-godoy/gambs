@@ -97,6 +97,17 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps): 
                     <option value="light">Light Theme</option>
                   </select>
                 </div>
+                <div className="settings-form-row">
+                  <label htmlFor="setting-multiselect">Multi-selection Method</label>
+                  <select
+                    id="setting-multiselect"
+                    value={localSettings.multiSelectMethod}
+                    onChange={(e) => handleUpdateLocal('multiSelectMethod', e.target.value)}
+                  >
+                    <option value="click">Click to toggle</option>
+                    <option value="ctrlClick">Ctrl/Cmd + Click</option>
+                  </select>
+                </div>
                 <div
                   className="settings-form-row checkbox-row"
                   onClick={() => handleUpdateLocal('snapToGrid', !localSettings.snapToGrid)}
@@ -110,6 +121,21 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps): 
                   />
                   <label htmlFor="setting-snap" onClick={(e) => e.stopPropagation()}>
                     Snap cursor to grid in 2D sketcher
+                  </label>
+                </div>
+                <div
+                  className="settings-form-row checkbox-row"
+                  onClick={() => handleUpdateLocal('snapToVertices', !localSettings.snapToVertices)}
+                >
+                  <input
+                    id="setting-snap-vertices"
+                    type="checkbox"
+                    checked={localSettings.snapToVertices}
+                    onChange={(e) => handleUpdateLocal('snapToVertices', e.target.checked)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <label htmlFor="setting-snap-vertices" onClick={(e) => e.stopPropagation()}>
+                    Snap cursor to vertices in 2D sketcher
                   </label>
                 </div>
               </div>

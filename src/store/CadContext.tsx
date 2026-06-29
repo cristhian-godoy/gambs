@@ -27,6 +27,8 @@ export interface AppSettings {
   gridDivisions: number;
   snapToGrid: boolean;
   theme: 'dark' | 'light';
+  multiSelectMethod: 'click' | 'ctrlClick';
+  snapToVertices: boolean;
 }
 
 /**
@@ -85,6 +87,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   gridDivisions: 20,
   snapToGrid: true,
   theme: 'dark',
+  multiSelectMethod: 'ctrlClick',
+  snapToVertices: true,
 };
 
 const getInitialSettings = (): AppSettings => {

@@ -657,7 +657,7 @@ export default function SketchCanvas(): ReactNode {
           const isEquals = (el1: typeof targetElement, el2: typeof targetElement) =>
             el1.geomId === el2.geomId && el1.vertexType === el2.vertexType;
 
-          if (e.ctrlKey || e.shiftKey) {
+          if (settings.multiSelectMethod === 'click' || e.ctrlKey || e.metaKey || e.shiftKey) {
             if (currentSelected.some((el) => isEquals(el, targetElement))) {
               setSelectedElements(currentSelected.filter((el) => !isEquals(el, targetElement)));
             } else {
@@ -671,7 +671,7 @@ export default function SketchCanvas(): ReactNode {
           e.preventDefault();
         } else {
           // click empty space -> clear selection
-          if (!e.ctrlKey && !e.shiftKey) {
+          if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
             setSelectedElements([]);
           }
         }
@@ -1290,6 +1290,8 @@ export default function SketchCanvas(): ReactNode {
     updateSketchConstraint,
     setActiveTool,
     settings.theme,
+    settings.multiSelectMethod,
+    settings.snapToVertices,
   ]);
 
   return (

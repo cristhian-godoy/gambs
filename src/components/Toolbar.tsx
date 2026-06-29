@@ -858,7 +858,15 @@ export default function Toolbar({ onOpenSettings }: ToolbarProps): ReactNode {
             <div className="draw-menu-container" style={{ position: 'relative' }}>
               <button
                 className={`toolbar-btn ${isDrawActive ? 'active' : ''}`}
-                onClick={() => setDrawMenuOpen(!drawMenuOpen)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDrawMenuOpen(!drawMenuOpen);
+                  setFileMenuOpen(false);
+                  setDesignMenuOpen(false);
+                  setModifyMenuOpen(false);
+                  setCombineMenuOpen(false);
+                  setConstraintsMenuOpen(false);
+                }}
                 title="Draw Menu"
               >
                 {currentDrawTool.icon}

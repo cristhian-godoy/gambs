@@ -109,12 +109,173 @@ export function cadReducer(state: CadHistoryState, action: CadAction): CadHistor
         }
       }
 
-      newFeatures.push(action.feature);
+      // If activeBodyId is present, auto-nest the feature under it (unless it's a part/body/datum)
+      const targetFeature = { ...action.feature };
+      if (
+        present.activeBodyId &&
+        targetFeature.type !== 'body' &&
+        targetFeature.type !== 'part' &&
+        targetFeature.params.isDatum !== true &&
+        !targetFeature.parentId
+      ) {
+        targetFeature.parentId = present.activeBodyId;
+      }
+
+      newFeatures.push(targetFeature);
+
+      let nextActiveId = targetFeature.id;
+      let nextActiveBodyId = present.activeBodyId;
+
+      if (targetFeature.type === 'body') {
+        const bodyId = targetFeature.id;
+        nextActiveBodyId = bodyId;
+
+        // Create local origin datums
+        const localOriginPoint: Feature = {
+          id: `datum_origin_${bodyId}`,
+          type: 'sketch',
+          name: 'Origin',
+          parentId: bodyId,
+          params: { isDatum: true, visible: true },
+          dependencies: [],
+        };
+        const localAxisX: Feature = {
+          id: `datum_axis_x_${bodyId}`,
+          type: 'sketch',
+          name: 'X Axis',
+          parentId: bodyId,
+          params: { isDatum: true, visible: false },
+          dependencies: [],
+        };
+        const localAxisY: Feature = {
+          id: `datum_axis_y_${bodyId}`,
+          type: 'sketch',
+          name: 'Y Axis',
+          parentId: bodyId,
+          params: { isDatum: true, visible: false },
+          dependencies: [],
+        };
+        const localAxisZ: Feature = {
+          id: `datum_axis_z_${bodyId}`,
+          type: 'sketch',
+          name: 'Z Axis',
+          parentId: bodyId,
+          params: { isDatum: true, visible: false },
+          dependencies: [],
+        };
+        const localPlaneXY: Feature = {
+          id: `datum_plane_xy_${bodyId}`,
+          type: 'sketch',
+          name: 'XY Plane',
+          parentId: bodyId,
+          params: { isDatum: true, visible: true },
+          dependencies: [],
+        };
+        const localPlaneYZ: Feature = {
+          id: `datum_plane_yz_${bodyId}`,
+          type: 'sketch',
+          name: 'YZ Plane',
+          parentId: bodyId,
+          params: { isDatum: true, visible: true },
+          dependencies: [],
+        };
+        const localPlaneZX: Feature = {
+          id: `datum_plane_zx_${bodyId}`,
+          type: 'sketch',
+          name: 'ZX Plane',
+          parentId: bodyId,
+          params: { isDatum: true, visible: true },
+          dependencies: [],
+        };
+
+        newFeatures.push(
+          localOriginPoint,
+          localAxisX,
+          localAxisY,
+          localAxisZ,
+          localPlaneXY,
+          localPlaneYZ,
+          localPlaneZX,
+        );
+        nextActiveId = localPlaneZX.id;
+      } else if (targetFeature.type === 'part') {
+        const partId = targetFeature.id;
+
+        // Create local origin datums
+        const localOriginPoint: Feature = {
+          id: `datum_origin_${partId}`,
+          type: 'sketch',
+          name: 'Origin',
+          parentId: partId,
+          params: { isDatum: true, visible: true },
+          dependencies: [],
+        };
+        const localAxisX: Feature = {
+          id: `datum_axis_x_${partId}`,
+          type: 'sketch',
+          name: 'X Axis',
+          parentId: partId,
+          params: { isDatum: true, visible: false },
+          dependencies: [],
+        };
+        const localAxisY: Feature = {
+          id: `datum_axis_y_${partId}`,
+          type: 'sketch',
+          name: 'Y Axis',
+          parentId: partId,
+          params: { isDatum: true, visible: false },
+          dependencies: [],
+        };
+        const localAxisZ: Feature = {
+          id: `datum_axis_z_${partId}`,
+          type: 'sketch',
+          name: 'Z Axis',
+          parentId: partId,
+          params: { isDatum: true, visible: false },
+          dependencies: [],
+        };
+        const localPlaneXY: Feature = {
+          id: `datum_plane_xy_${partId}`,
+          type: 'sketch',
+          name: 'XY Plane',
+          parentId: partId,
+          params: { isDatum: true, visible: true },
+          dependencies: [],
+        };
+        const localPlaneYZ: Feature = {
+          id: `datum_plane_yz_${partId}`,
+          type: 'sketch',
+          name: 'YZ Plane',
+          parentId: partId,
+          params: { isDatum: true, visible: true },
+          dependencies: [],
+        };
+        const localPlaneZX: Feature = {
+          id: `datum_plane_zx_${partId}`,
+          type: 'sketch',
+          name: 'ZX Plane',
+          parentId: partId,
+          params: { isDatum: true, visible: true },
+          dependencies: [],
+        };
+
+        newFeatures.push(
+          localOriginPoint,
+          localAxisX,
+          localAxisY,
+          localAxisZ,
+          localPlaneXY,
+          localPlaneYZ,
+          localPlaneZX,
+        );
+        nextActiveId = localPlaneZX.id;
+      }
 
       const nextPresent: DocumentState = {
         ...present,
         features: newFeatures,
-        activeFeatureId: action.feature.id,
+        activeFeatureId: nextActiveId,
+        activeBodyId: nextActiveBodyId,
       };
 
       return {
@@ -221,6 +382,19 @@ export function cadReducer(state: CadHistoryState, action: CadAction): CadHistor
         present: {
           ...present,
           activeFeatureId: action.id,
+        },
+      };
+    }
+
+    case 'SET_ACTIVE_BODY': {
+      if (action.id !== null && !present.features.some((f) => f.id === action.id)) {
+        return state;
+      }
+      return {
+        ...state,
+        present: {
+          ...present,
+          activeBodyId: action.id,
         },
       };
     }

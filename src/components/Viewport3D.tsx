@@ -381,17 +381,25 @@ export default function Viewport3D(): ReactNode {
     dirLight.position.set(50, 50, 100);
     scene.add(dirLight);
 
-    // 5. Evaluate features chronologically to build solid B-Rep representation
-    const solid = buildSolidFromFeatures(features);
-
+    // 5. Evaluate features in Web Worker (with synchronous fallback)
+    let worker: Worker | null = null;
     let geometry: THREE.BufferGeometry | null = null;
     let material: THREE.MeshStandardMaterial | null = null;
     let wireframeGeom: THREE.EdgesGeometry | null = null;
     let wireframeMat: THREE.LineBasicMaterial | null = null;
+    let activeMesh: THREE.Mesh | null = null;
+    let activeLine: THREE.LineSegments | null = null;
 
-    if (solid && solid.vertices.length > 0) {
-      if (solid.faces.length > 0) {
-        geometry = buildThreeGeometry(solid);
+    const updateSceneGeometry = (
+      positions: Float32Array,
+      normals: Float32Array,
+      linePositions: Float32Array,
+    ) => {
+      if (positions.length > 0) {
+        geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geometry.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
+
         material = new THREE.MeshStandardMaterial({
           color: '#38bdf8', // beautiful light blue
           roughness: 0.2,
@@ -399,33 +407,69 @@ export default function Viewport3D(): ReactNode {
           transparent: true,
           opacity: 0.9,
         });
-        const mesh = new THREE.Mesh(geometry, material);
-        scene.add(mesh);
+        activeMesh = new THREE.Mesh(geometry, material);
+        scene.add(activeMesh);
 
         // Wireframe edges overlay
         wireframeGeom = new THREE.EdgesGeometry(geometry);
         wireframeMat = new THREE.LineBasicMaterial({ color: '#ffffff', linewidth: 1.5 });
         const wireframe = new THREE.LineSegments(wireframeGeom, wireframeMat);
-        mesh.add(wireframe);
-      } else {
-        // Render as 3D line path (e.g. Helix)
-        const linePositions: number[] = [];
-        for (const edge of solid.edges) {
-          const vStart = solid.vertices.find((v) => v.id === edge.startVertexId);
-          const vEnd = solid.vertices.find((v) => v.id === edge.endVertexId);
-          if (vStart && vEnd) {
-            linePositions.push(vStart.x, vStart.y, vStart.z);
-            linePositions.push(vEnd.x, vEnd.y, vEnd.z);
+        activeMesh.add(wireframe);
+      } else if (linePositions.length > 0) {
+        geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
+        const lineMat = new THREE.LineBasicMaterial({ color: '#f59e0b', linewidth: 2.0 });
+        activeLine = new THREE.LineSegments(geometry, lineMat);
+        scene.add(activeLine);
+      }
+    };
+
+    if (typeof Worker !== 'undefined') {
+      worker = new Worker(new URL('../core/cad.worker.ts', import.meta.url), {
+        type: 'module',
+      });
+      worker.onmessage = (e) => {
+        const response = e.data;
+        if (response.type === 'BUILD_SOLID_SUCCESS') {
+          const { positions, normals, linePositions } = response;
+          updateSceneGeometry(positions, normals, linePositions);
+        }
+      };
+      worker.postMessage({ type: 'BUILD_SOLID', features });
+    } else {
+      try {
+        const solid = buildSolidFromFeatures(features);
+        if (solid && solid.vertices.length > 0) {
+          if (solid.faces.length > 0) {
+            const tempGeom = buildThreeGeometry(solid);
+            const positionsAttr = tempGeom.getAttribute('position') as THREE.BufferAttribute;
+            const normalsAttr = tempGeom.getAttribute('normal') as THREE.BufferAttribute;
+            const positions = positionsAttr
+              ? (positionsAttr.array as Float32Array)
+              : new Float32Array(0);
+            const normals = normalsAttr ? (normalsAttr.array as Float32Array) : new Float32Array(0);
+            updateSceneGeometry(positions, normals, new Float32Array(0));
+            tempGeom.dispose();
+          } else {
+            const linePositions: number[] = [];
+            for (const edge of solid.edges) {
+              const vStart = solid.vertices.find((v) => v.id === edge.startVertexId);
+              const vEnd = solid.vertices.find((v) => v.id === edge.endVertexId);
+              if (vStart && vEnd) {
+                linePositions.push(vStart.x, vStart.y, vStart.z);
+                linePositions.push(vEnd.x, vEnd.y, vEnd.z);
+              }
+            }
+            updateSceneGeometry(
+              new Float32Array(0),
+              new Float32Array(0),
+              new Float32Array(linePositions),
+            );
           }
         }
-        geometry = new THREE.BufferGeometry();
-        geometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
-        const lineMat = new THREE.LineBasicMaterial({ color: '#f59e0b', linewidth: 2.0 });
-        const line = new THREE.LineSegments(geometry, lineMat);
-        scene.add(line);
+      } catch (err) {
+        console.error('Error rebuilding solid synchronously:', err);
       }
-    } else {
-      // Empty canvas by default
     }
 
     // 6. Animation loop
@@ -500,6 +544,9 @@ export default function Viewport3D(): ReactNode {
     resizeObserver.observe(container);
 
     return () => {
+      if (worker) {
+        worker.terminate();
+      }
       cancelAnimationFrame(animationFrameId);
       resizeObserver.disconnect();
       renderer.dispose();
@@ -507,6 +554,12 @@ export default function Viewport3D(): ReactNode {
       material?.dispose();
       wireframeGeom?.dispose();
       wireframeMat?.dispose();
+      if (activeMesh) {
+        scene.remove(activeMesh);
+      }
+      if (activeLine) {
+        scene.remove(activeLine);
+      }
       datumGeometries.forEach((d) => d?.dispose?.());
       if (handlePointerCapture) {
         canvas.removeEventListener('pointerdown', handlePointerCapture, true);

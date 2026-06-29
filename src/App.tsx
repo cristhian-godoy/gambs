@@ -1,8 +1,8 @@
 import { type ReactNode, useState } from 'react';
 
 import Sidebar from './components/Sidebar.tsx';
+import SketchCanvas from './components/SketchCanvas.tsx';
 import Toolbar from './components/Toolbar.tsx';
-import Viewport from './components/Viewport.tsx';
 import { CadProvider } from './store/CadContext.tsx';
 
 /**
@@ -18,7 +18,7 @@ export default function App(): ReactNode {
         <Toolbar />
         <main className="main-workspace">
           <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen((prev) => !prev)} />
-          <Viewport />
+          <SketchCanvas />
         </main>
       </div>
     </CadProvider>

@@ -2,5 +2,7 @@ Toolbar.tsx
 	Top actions bar with Save, Undo, and Redo controls.
 Sidebar.tsx
 	Collapsible panel displaying feature lists and properties.
-Viewport.tsx
-	Main CAD workspace rendering grid and coordinates.
+SketchCanvas.tsx
+	Interactive infinite 2D canvas with pan, zoom, and coordinate tracking.
+SketchCanvas.test.tsx
+	Tests for the SketchCanvas component.

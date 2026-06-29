@@ -169,7 +169,7 @@ export function cadReducer(state: CadHistoryState, action: CadAction): CadHistor
 
       // Identify dependencies recursively or simple cascading delete of all subsequent features
       // In parametric design, features after the deleted one that depend on it are broken.
-      // For simplicity, we remove the target feature and any features after it that have it in dependencies.
+      // For simplicity, we remove the target feature, any child features, and any features after it that have it in dependencies.
       const deletedIds = new Set<string>([action.id]);
       const nextFeatures: Feature[] = [];
 
@@ -177,8 +177,9 @@ export function cadReducer(state: CadHistoryState, action: CadAction): CadHistor
         if (f.id === action.id) {
           continue;
         }
+        const isChild = f.parentId && deletedIds.has(f.parentId);
         const hasDependency = f.dependencies.some((depId) => deletedIds.has(depId));
-        if (hasDependency) {
+        if (isChild || hasDependency) {
           deletedIds.add(f.id);
         } else {
           nextFeatures.push(f);
@@ -197,6 +198,10 @@ export function cadReducer(state: CadHistoryState, action: CadAction): CadHistor
         features: nextFeatures,
         activeFeatureId: nextActiveId,
         activeSketchId: present.activeSketchId === action.id ? null : present.activeSketchId,
+        activeBodyId:
+          present.activeBodyId && deletedIds.has(present.activeBodyId)
+            ? null
+            : present.activeBodyId,
       };
 
       return {

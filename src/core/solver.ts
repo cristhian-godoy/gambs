@@ -13,6 +13,8 @@ export interface SketchConstraint {
     | 'radius'
     | 'parallel'
     | 'perpendicular'
+    | 'point_on_line'
+    | 'tangent'
     | 'fixed';
   targets: {
     geomId: string;
@@ -235,6 +237,102 @@ export function solveSketch(
         break;
       }
 
+      case 'point_on_line': {
+        if (c.targets.length < 2) break;
+        const p = resolvePointIndex(c.targets[0]);
+        const lineId = c.targets[1].geomId;
+        const sx = getVarIndex(lineId, 'start_x');
+        const sy = getVarIndex(lineId, 'start_y');
+        const ex = getVarIndex(lineId, 'end_x');
+        const ey = getVarIndex(lineId, 'end_y');
+
+        if (sx !== -1 && sy !== -1 && ex !== -1 && ey !== -1) {
+          equations.push({
+            evaluate: (x) => {
+              const px = p.xIdx !== -1 ? x[p.xIdx] : p.fixedX!;
+              const py = p.yIdx !== -1 ? x[p.yIdx] : p.fixedY!;
+              const lx1 = x[sx];
+              const ly1 = x[sy];
+              const lx2 = x[ex];
+              const ly2 = x[ey];
+              return (px - lx1) * (ly2 - ly1) - (py - ly1) * (lx2 - lx1);
+            },
+          });
+        }
+        break;
+      }
+
+      case 'tangent': {
+        if (c.targets.length < 2) break;
+        const g1 = c.targets[0].geomId;
+        const g2 = c.targets[1].geomId;
+
+        const isCircle1 = getVarIndex(g1, 'radius') !== -1;
+        const isCircle2 = getVarIndex(g2, 'radius') !== -1;
+
+        if (!isCircle1 && isCircle2) {
+          // Line tangent to Circle
+          const sx = getVarIndex(g1, 'start_x');
+          const sy = getVarIndex(g1, 'start_y');
+          const ex = getVarIndex(g1, 'end_x');
+          const ey = getVarIndex(g1, 'end_y');
+          const cx = getVarIndex(g2, 'center_x');
+          const cy = getVarIndex(g2, 'center_y');
+          const r = getVarIndex(g2, 'radius');
+
+          if (
+            sx !== -1 &&
+            sy !== -1 &&
+            ex !== -1 &&
+            ey !== -1 &&
+            cx !== -1 &&
+            cy !== -1 &&
+            r !== -1
+          ) {
+            equations.push({
+              evaluate: (x) => {
+                const x1 = x[sx];
+                const y1 = x[sy];
+                const x2 = x[ex];
+                const y2 = x[ey];
+                const xo = x[cx];
+                const yo = x[cy];
+                const radius = x[r];
+                const num = (y2 - y1) * xo - (x2 - x1) * yo + x2 * y1 - y2 * x1;
+                const den = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+                return num * num - radius * radius * den;
+              },
+            });
+          }
+        } else if (isCircle1 && isCircle2) {
+          // Circle tangent to Circle
+          const cx1 = getVarIndex(g1, 'center_x');
+          const cy1 = getVarIndex(g1, 'center_y');
+          const r1 = getVarIndex(g1, 'radius');
+          const cx2 = getVarIndex(g2, 'center_x');
+          const cy2 = getVarIndex(g2, 'center_y');
+          const r2 = getVarIndex(g2, 'radius');
+
+          if (cx1 !== -1 && cy1 !== -1 && r1 !== -1 && cx2 !== -1 && cy2 !== -1 && r2 !== -1) {
+            equations.push({
+              evaluate: (x) => {
+                const x1 = x[cx1];
+                const y1 = x[cy1];
+                const radius1 = x[r1];
+                const x2 = x[cx2];
+                const y2 = x[cy2];
+                const radius2 = x[r2];
+                const dx = x1 - x2;
+                const dy = y1 - y2;
+                const rSum = radius1 + radius2;
+                return dx * dx + dy * dy - rSum * rSum;
+              },
+            });
+          }
+        }
+        break;
+      }
+
       case 'parallel': {
         if (c.targets.length < 2) break;
         const g1 = c.targets[0].geomId;
@@ -373,7 +471,7 @@ export function solveSketch(
     // We use least-squares pseudo-inverse update:
     // dx = J^T * (J * J^T + lambda*I)^-1 * (-F)
     // where lambda is a small damping factor for Levenberg-Marquardt style stability.
-    const lambda = 1e-4;
+    const lambda = 1e-9;
 
     // Compute A = J * J^T (m x m)
     const A: number[][] = Array.from({ length: m }, () => Array(m).fill(0));

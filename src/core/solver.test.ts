@@ -101,4 +101,98 @@ describe('Sketch Solver', () => {
     const dotProduct = dx1 * dx2 + dy1 * dy2;
     expect(dotProduct).toBeCloseTo(0, 5);
   });
+
+  it('solves point-on-line constraints', () => {
+    // Line: (0,0) -> (10, 10)
+    // Point: Circle center at (5, 6)
+    const line = {
+      type: 'line' as const,
+      id: 'l1',
+      start: { x: 0, y: 0 },
+      end: { x: 10, y: 10 },
+    };
+    const circle = {
+      type: 'circle' as const,
+      id: 'c1',
+      center: { x: 5, y: 6 },
+      radius: 2,
+    };
+
+    const constraints = [
+      {
+        id: 'c1',
+        type: 'point_on_line' as const,
+        targets: [{ geomId: 'c1', vertexType: 'center' as const }, { geomId: 'l1' }],
+      },
+      // Fix line start at (0,0)
+      {
+        id: 'c2',
+        type: 'fixed' as const,
+        targets: [{ geomId: 'l1', vertexType: 'start' as const }],
+        value: 0,
+      },
+      // Fix line end at (10,10)
+      {
+        id: 'c3',
+        type: 'fixed' as const,
+        targets: [{ geomId: 'l1', vertexType: 'end' as const }],
+        value: 10,
+      },
+    ];
+
+    const solved = solveSketch([line, circle], constraints);
+    // Center must end up on the diagonal y = x (approx 5.5, 5.5)
+    expect(solved[1].center.x).toBeCloseTo(5.5);
+    expect(solved[1].center.y).toBeCloseTo(5.5);
+  });
+
+  it('solves tangent constraints between line and circle', () => {
+    // Circle at (0,0) with radius 5
+    // Line from (5.5, -10) to (5.5, 10)
+    const circle = {
+      type: 'circle' as const,
+      id: 'c1',
+      center: { x: 0, y: 0 },
+      radius: 5,
+    };
+    const line = {
+      type: 'line' as const,
+      id: 'l1',
+      start: { x: 5.5, y: -10 },
+      end: { x: 5.5, y: 10 },
+    };
+
+    const constraints = [
+      {
+        id: 'c1',
+        type: 'tangent' as const,
+        targets: [{ geomId: 'l1' }, { geomId: 'c1' }],
+      },
+      // Fix circle center at (0,0)
+      {
+        id: 'c2',
+        type: 'fixed' as const,
+        targets: [{ geomId: 'c1', vertexType: 'center' as const }],
+        value: 0,
+      },
+      // Fix circle radius at 5
+      {
+        id: 'c3',
+        type: 'radius' as const,
+        targets: [{ geomId: 'c1' }],
+        value: 5,
+      },
+      // Lock line vertical
+      {
+        id: 'c4',
+        type: 'vertical' as const,
+        targets: [{ geomId: 'l1' }],
+      },
+    ];
+
+    const solved = solveSketch([circle, line], constraints);
+    // The line should solve to x = 5 (exactly tangent to circle of radius 5 at origin)
+    expect(solved[1].start.x).toBeCloseTo(5);
+    expect(solved[1].end.x).toBeCloseTo(5);
+  });
 });

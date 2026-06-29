@@ -216,9 +216,8 @@ export default function Viewport3D(): ReactNode {
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
 
-    // Define keyboard listeners outside conditional block to expose to cleanup
-    let handleKeyDown: ((e: KeyboardEvent) => void) | undefined;
-    let handleKeyUp: ((e: KeyboardEvent) => void) | undefined;
+    // Define capture handler outside to refer in cleanup
+    let handlePointerCapture: ((e: PointerEvent | MouseEvent) => void) | undefined;
 
     if (settings.navigationStyle === 'blender') {
       controls.mouseButtons = {
@@ -227,20 +226,24 @@ export default function Viewport3D(): ReactNode {
         RIGHT: THREE.MOUSE.NONE,
       };
 
-      handleKeyDown = (e: KeyboardEvent) => {
-        if (e.shiftKey) {
-          controls.mouseButtons.MIDDLE = THREE.MOUSE.PAN;
+      // OrbitControls maps Ctrl+Rotate to PAN and Shift+Rotate to DOLLY.
+      // Blender maps Shift+MiddleClick to PAN and Ctrl+MiddleClick to DOLLY (Zoom).
+      // We swap the shiftKey and ctrlKey flags on Middle Click events so OrbitControls responds correctly.
+      handlePointerCapture = (e: PointerEvent | MouseEvent) => {
+        if (e.button === 1 || e.buttons === 4) {
+          const hasShift = e.shiftKey;
+          const hasCtrl = e.ctrlKey;
+          Object.defineProperty(e, 'shiftKey', { get: () => hasCtrl, configurable: true });
+          Object.defineProperty(e, 'ctrlKey', { get: () => hasShift, configurable: true });
         }
       };
 
-      handleKeyUp = (e: KeyboardEvent) => {
-        if (!e.shiftKey) {
-          controls.mouseButtons.MIDDLE = THREE.MOUSE.ROTATE;
-        }
-      };
-
-      window.addEventListener('keydown', handleKeyDown);
-      window.addEventListener('keyup', handleKeyUp);
+      canvas.addEventListener('pointerdown', handlePointerCapture, true);
+      canvas.addEventListener('pointermove', handlePointerCapture, true);
+      canvas.addEventListener('pointerup', handlePointerCapture, true);
+      canvas.addEventListener('mousedown', handlePointerCapture, true);
+      canvas.addEventListener('mousemove', handlePointerCapture, true);
+      canvas.addEventListener('mouseup', handlePointerCapture, true);
     } else {
       controls.mouseButtons = {
         LEFT: THREE.MOUSE.ROTATE,
@@ -505,8 +508,14 @@ export default function Viewport3D(): ReactNode {
       wireframeGeom?.dispose();
       wireframeMat?.dispose();
       datumGeometries.forEach((d) => d?.dispose?.());
-      if (handleKeyDown) window.removeEventListener('keydown', handleKeyDown);
-      if (handleKeyUp) window.removeEventListener('keyup', handleKeyUp);
+      if (handlePointerCapture) {
+        canvas.removeEventListener('pointerdown', handlePointerCapture, true);
+        canvas.removeEventListener('pointermove', handlePointerCapture, true);
+        canvas.removeEventListener('pointerup', handlePointerCapture, true);
+        canvas.removeEventListener('mousedown', handlePointerCapture, true);
+        canvas.removeEventListener('mousemove', handlePointerCapture, true);
+        canvas.removeEventListener('mouseup', handlePointerCapture, true);
+      }
     };
   }, [features, settings]);
 

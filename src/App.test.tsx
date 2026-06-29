@@ -67,9 +67,25 @@ vi.mock('three', () => {
     },
     MeshBasicMaterial: class {
       dispose = vi.fn();
+      map = { dispose: vi.fn() };
     },
     Mesh: class {
       add = vi.fn();
+      position = {
+        set(x: number, y: number, z: number) {
+          this.x = x;
+          this.y = y;
+          this.z = z;
+        },
+        x: 0,
+        y: 0,
+        z: 0,
+      };
+      rotation = { x: 0, y: 0, z: 0 };
+      material: unknown;
+      constructor(geometry: unknown, material: unknown) {
+        this.material = material;
+      }
     },
     EdgesGeometry: class {
       dispose = vi.fn();
@@ -94,7 +110,11 @@ vi.mock('three', () => {
       setFromPoints = vi.fn().mockReturnThis();
       setAttribute = vi.fn();
     },
+    PlaneGeometry: class {
+      dispose = vi.fn();
+    },
     Color: class {},
+    DoubleSide: 2,
   };
 });
 

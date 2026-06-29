@@ -139,36 +139,41 @@ function buildThreeGeometry(shape: BrepShape): THREE.BufferGeometry {
   return geometry;
 }
 /**
- * Helper to build a Sprite representing a plane label (e.g. XY, YZ, ZX).
+ * Helper to build a flat Mesh representing a plane label (e.g. XY, YZ, ZX).
  */
-function createPlaneLabel(text: string, color: string): THREE.Sprite {
+function createPlaneMeshLabel(text: string, color: string): THREE.Mesh {
   const canvas = document.createElement('canvas');
-  canvas.width = 64;
-  canvas.height = 32;
+  canvas.width = 128;
+  canvas.height = 64;
   const ctx = canvas.getContext('2d');
   if (ctx) {
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.4)';
     ctx.beginPath();
     if (typeof ctx.roundRect === 'function') {
-      ctx.roundRect(0, 0, 64, 32, 6);
+      ctx.roundRect(0, 0, 128, 64, 12);
     } else {
-      ctx.rect(0, 0, 64, 32);
+      ctx.rect(0, 0, 128, 64);
     }
     ctx.fill();
     ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 4;
     ctx.stroke();
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 14px sans-serif';
+    ctx.font = 'bold 32px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(text, 32, 16);
+    ctx.fillText(text, 64, 32);
   }
   const texture = new THREE.CanvasTexture(canvas);
-  const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
-  const sprite = new THREE.Sprite(material);
-  sprite.scale.set(10, 5, 1);
-  return sprite;
+  const material = new THREE.MeshBasicMaterial({
+    map: texture,
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+  const geom = new THREE.PlaneGeometry(10, 5);
+  const mesh = new THREE.Mesh(geom, material);
+  return mesh;
 }
 
 /**
@@ -235,7 +240,7 @@ export default function Viewport3D(): ReactNode {
 
     const axisYFeat = features.find((f) => f.id === 'datum_axis_y');
     if (axisYFeat && axisYFeat.params.visible !== false) {
-      const pointsY = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 100, 0)];
+      const pointsY = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -100, 0)];
       const geomY = new THREE.BufferGeometry().setFromPoints(pointsY);
       const matY = new THREE.LineBasicMaterial({ color: '#22c55e' }); // Green
       datumGeometries.push(geomY, matY);
@@ -260,13 +265,14 @@ export default function Viewport3D(): ReactNode {
       xyGrid.position.z = -0.01;
       scene.add(xyGrid);
 
-      const label = createPlaneLabel('XY', '#ef4444');
-      label.position.set(50, 50, 0);
+      const label = createPlaneMeshLabel('XY', '#ef4444');
+      label.position.set(45, -45, 0);
       scene.add(label);
 
       datumGeometries.push(
         xyGrid.geometry,
         xyGrid.material as THREE.Material,
+        label.geometry,
         label.material,
         label.material.map!,
       );
@@ -279,13 +285,15 @@ export default function Viewport3D(): ReactNode {
       yzGrid.position.x = -0.01;
       scene.add(yzGrid);
 
-      const label = createPlaneLabel('YZ', '#22c55e');
-      label.position.set(0, 50, 50);
+      const label = createPlaneMeshLabel('YZ', '#22c55e');
+      label.position.set(0, -45, 45);
+      label.rotation.y = Math.PI / 2;
       scene.add(label);
 
       datumGeometries.push(
         yzGrid.geometry,
         yzGrid.material as THREE.Material,
+        label.geometry,
         label.material,
         label.material.map!,
       );
@@ -297,13 +305,15 @@ export default function Viewport3D(): ReactNode {
       zxGrid.position.y = -0.01;
       scene.add(zxGrid);
 
-      const label = createPlaneLabel('ZX', '#3b82f6');
-      label.position.set(50, 0, 50);
+      const label = createPlaneMeshLabel('ZX', '#3b82f6');
+      label.position.set(45, 0, 45);
+      label.rotation.x = Math.PI / 2;
       scene.add(label);
 
       datumGeometries.push(
         zxGrid.geometry,
         zxGrid.material as THREE.Material,
+        label.geometry,
         label.material,
         label.material.map!,
       );

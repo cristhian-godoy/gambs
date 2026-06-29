@@ -19,6 +19,36 @@ interface SidebarProps {
   onToggle: () => void;
 }
 
+const canMoveTo = (feature: Feature, target: Feature | null, allFeatures: Feature[]): boolean => {
+  if (feature.params.isDatum === true) return false;
+  if (target && feature.id === target.id) return false;
+
+  // Prevent moving into its own descendant
+  if (target) {
+    let current: Feature | undefined = target;
+    while (current) {
+      if (current.parentId === feature.id) return false;
+      current = current.parentId ? allFeatures.find((f) => f.id === current!.parentId) : undefined;
+    }
+  }
+
+  // Nesting validation rules:
+  if (feature.type === 'part') {
+    return target === null;
+  }
+  if (feature.type === 'body') {
+    return target !== null && target.type === 'part';
+  }
+  if (feature.type === 'folder') {
+    return (
+      target !== null &&
+      (target.type === 'part' || target.type === 'body' || target.type === 'folder')
+    );
+  }
+  // Standard features (sketches, operations) can be in Body or Folder
+  return target !== null && (target.type === 'body' || target.type === 'folder');
+};
+
 /**
  * Sidebar component housing the feature tree and properties panel.
  * @param props Props for the sidebar component.
@@ -1366,6 +1396,42 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                 },
               },
               {
+                label: 'Move To...',
+                action: () => {
+                  const validContainers = features.filter(
+                    (t) =>
+                      (t.type === 'part' || t.type === 'body' || t.type === 'folder') &&
+                      canMoveTo(feature, t, features),
+                  );
+                  const isRootValid = canMoveTo(feature, null, features);
+
+                  let promptMsg = 'Move to container:\nEnter Container Name or ID:\n';
+                  if (isRootValid) {
+                    promptMsg += ' - [root]\n';
+                  }
+                  validContainers.forEach((c) => {
+                    promptMsg += ` - ${c.name} (${c.type}, ID: ${c.id})\n`;
+                  });
+
+                  const choice = prompt(promptMsg);
+                  if (choice) {
+                    const trimmed = choice.trim();
+                    if (trimmed.toLowerCase() === '[root]' && isRootValid) {
+                      updateFeature(feature.id, { parentId: null });
+                    } else {
+                      const selected = validContainers.find(
+                        (c) => c.id === trimmed || c.name === trimmed,
+                      );
+                      if (selected) {
+                        updateFeature(feature.id, { parentId: selected.id });
+                      } else {
+                        alert('Invalid target container.');
+                      }
+                    }
+                  }
+                },
+              },
+              {
                 label: 'Delete',
                 action: () => {
                   deleteFeature(feature.id);
@@ -1566,6 +1632,13 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                 action: () => {
                   const count = features.filter((f) => f.type === 'body').length + 1;
                   addFeature('body', `Body ${count}`);
+                },
+              },
+              {
+                label: 'Add Folder',
+                action: () => {
+                  const count = features.filter((f) => f.type === 'folder').length + 1;
+                  addFeature('folder', `Folder ${count}`);
                 },
               },
             ]);

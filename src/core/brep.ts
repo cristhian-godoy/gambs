@@ -74,7 +74,11 @@ export interface BrepShape {
  * @param depth Distance to extrude along Z axis.
  * @returns B-Rep solid shape.
  */
-export function extrudeProfile(profile: SketchGeometry[], depth: number): BrepShape {
+export function extrudeProfile(
+  profile: SketchGeometry[],
+  depth: number,
+  featureId: string = 'extrude',
+): BrepShape {
   const vertices: Vertex3D[] = [];
   const edges: Edge3D[] = [];
   const wires: Wire3D[] = [];
@@ -85,8 +89,8 @@ export function extrudeProfile(profile: SketchGeometry[], depth: number): BrepSh
   const shellFaceIds: string[] = [];
 
   // Helper to add vertex
-  const addVertex = (x: number, y: number, z: number): string => {
-    const id = `v_${vertices.length}_${Date.now()}`;
+  const addVertex = (x: number, y: number, z: number, geomId: string = ''): string => {
+    const id = `v_${vertices.length}_${featureId}${geomId ? `_${geomId}` : ''}`;
     vertices.push({ id, x, y, z });
     return id;
   };
@@ -96,9 +100,10 @@ export function extrudeProfile(profile: SketchGeometry[], depth: number): BrepSh
     type: 'line' | 'arc' | 'circle',
     startId: string,
     endId: string,
+    geomId: string = '',
     extra?: Partial<Edge3D>,
   ): string => {
-    const id = `e_${edges.length}_${Date.now()}`;
+    const id = `e_${edges.length}_${featureId}${geomId ? `_${geomId}` : ''}`;
     edges.push({ id, type, startVertexId: startId, endVertexId: endId, ...extra });
     return id;
   };
@@ -113,36 +118,36 @@ export function extrudeProfile(profile: SketchGeometry[], depth: number): BrepSh
       const y2 = Math.max(geom.start.y, geom.end.y);
 
       // Vertices (bottom at z=0, top at z=depth)
-      const b00 = addVertex(x1, y1, 0);
-      const b10 = addVertex(x2, y1, 0);
-      const b11 = addVertex(x2, y2, 0);
-      const b01 = addVertex(x1, y2, 0);
+      const b00 = addVertex(x1, y1, 0, `${geom.id}_b00`);
+      const b10 = addVertex(x2, y1, 0, `${geom.id}_b10`);
+      const b11 = addVertex(x2, y2, 0, `${geom.id}_b11`);
+      const b01 = addVertex(x1, y2, 0, `${geom.id}_b01`);
 
-      const t00 = addVertex(x1, y1, depth);
-      const t10 = addVertex(x2, y1, depth);
-      const t11 = addVertex(x2, y2, depth);
-      const t01 = addVertex(x1, y2, depth);
+      const t00 = addVertex(x1, y1, depth, `${geom.id}_t00`);
+      const t10 = addVertex(x2, y1, depth, `${geom.id}_t10`);
+      const t11 = addVertex(x2, y2, depth, `${geom.id}_t11`);
+      const t01 = addVertex(x1, y2, depth, `${geom.id}_t01`);
 
       // Edges
-      const be1 = addEdge('line', b00, b10);
-      const be2 = addEdge('line', b10, b11);
-      const be3 = addEdge('line', b11, b01);
-      const be4 = addEdge('line', b01, b00);
+      const be1 = addEdge('line', b00, b10, `${geom.id}_be1`);
+      const be2 = addEdge('line', b10, b11, `${geom.id}_be2`);
+      const be3 = addEdge('line', b11, b01, `${geom.id}_be3`);
+      const be4 = addEdge('line', b01, b00, `${geom.id}_be4`);
 
-      const te1 = addEdge('line', t00, t10);
-      const te2 = addEdge('line', t10, t11);
-      const te3 = addEdge('line', t11, t01);
-      const te4 = addEdge('line', t01, t00);
+      const te1 = addEdge('line', t00, t10, `${geom.id}_te1`);
+      const te2 = addEdge('line', t10, t11, `${geom.id}_te2`);
+      const te3 = addEdge('line', t11, t01, `${geom.id}_te3`);
+      const te4 = addEdge('line', t01, t00, `${geom.id}_te4`);
 
-      const se1 = addEdge('line', b00, t00);
-      const se2 = addEdge('line', b10, t10);
-      const se3 = addEdge('line', b11, t11);
-      const se4 = addEdge('line', b01, t01);
+      const se1 = addEdge('line', b00, t00, `${geom.id}_se1`);
+      const se2 = addEdge('line', b10, t10, `${geom.id}_se2`);
+      const se3 = addEdge('line', b11, t11, `${geom.id}_se3`);
+      const se4 = addEdge('line', b01, t01, `${geom.id}_se4`);
 
       // Wires & Faces
-      const bottomWireId = `w_bottom_${Date.now()}`;
+      const bottomWireId = `w_bottom_${featureId}_${geom.id}`;
       wires.push({ id: bottomWireId, edgeIds: [be1, be2, be3, be4] });
-      const bottomFaceId = `f_bottom_${Date.now()}`;
+      const bottomFaceId = `f_bottom_${featureId}_${geom.id}`;
       faces.push({
         id: bottomFaceId,
         outerWireId: bottomWireId,
@@ -151,9 +156,9 @@ export function extrudeProfile(profile: SketchGeometry[], depth: number): BrepSh
       });
       shellFaceIds.push(bottomFaceId);
 
-      const topWireId = `w_top_${Date.now()}`;
+      const topWireId = `w_top_${featureId}_${geom.id}`;
       wires.push({ id: topWireId, edgeIds: [te1, te2, te3, te4] });
-      const topFaceId = `f_top_${Date.now()}`;
+      const topFaceId = `f_top_${featureId}_${geom.id}`;
       faces.push({
         id: topFaceId,
         outerWireId: topWireId,
@@ -162,9 +167,9 @@ export function extrudeProfile(profile: SketchGeometry[], depth: number): BrepSh
       });
       shellFaceIds.push(topFaceId);
 
-      const wSide1 = `w_s1_${Date.now()}`;
+      const wSide1 = `w_s1_${featureId}_${geom.id}`;
       wires.push({ id: wSide1, edgeIds: [be1, se2, te1, se1] });
-      const fSide1 = `f_s1_${Date.now()}`;
+      const fSide1 = `f_s1_${featureId}_${geom.id}`;
       faces.push({
         id: fSide1,
         outerWireId: wSide1,
@@ -173,9 +178,9 @@ export function extrudeProfile(profile: SketchGeometry[], depth: number): BrepSh
       });
       shellFaceIds.push(fSide1);
 
-      const wSide2 = `w_s2_${Date.now()}`;
+      const wSide2 = `w_s2_${featureId}_${geom.id}`;
       wires.push({ id: wSide2, edgeIds: [be2, se3, te2, se2] });
-      const fSide2 = `f_s2_${Date.now()}`;
+      const fSide2 = `f_s2_${featureId}_${geom.id}`;
       faces.push({
         id: fSide2,
         outerWireId: wSide2,
@@ -184,9 +189,9 @@ export function extrudeProfile(profile: SketchGeometry[], depth: number): BrepSh
       });
       shellFaceIds.push(fSide2);
 
-      const wSide3 = `w_s3_${Date.now()}`;
+      const wSide3 = `w_s3_${featureId}_${geom.id}`;
       wires.push({ id: wSide3, edgeIds: [be3, se4, te3, se3] });
-      const fSide3 = `f_s3_${Date.now()}`;
+      const fSide3 = `f_s3_${featureId}_${geom.id}`;
       faces.push({
         id: fSide3,
         outerWireId: wSide3,
@@ -195,9 +200,9 @@ export function extrudeProfile(profile: SketchGeometry[], depth: number): BrepSh
       });
       shellFaceIds.push(fSide3);
 
-      const wSide4 = `w_s4_${Date.now()}`;
+      const wSide4 = `w_s4_${featureId}_${geom.id}`;
       wires.push({ id: wSide4, edgeIds: [be4, se1, te4, se4] });
-      const fSide4 = `f_s4_${Date.now()}`;
+      const fSide4 = `f_s4_${featureId}_${geom.id}`;
       faces.push({
         id: fSide4,
         outerWireId: wSide4,
@@ -208,15 +213,21 @@ export function extrudeProfile(profile: SketchGeometry[], depth: number): BrepSh
     } else if (geom.type === 'circle') {
       const { center, radius } = geom;
 
-      const bCenter = addVertex(center.x, center.y, 0);
-      const tCenter = addVertex(center.x, center.y, depth);
+      const bCenter = addVertex(center.x, center.y, 0, `${geom.id}_bCenter`);
+      const tCenter = addVertex(center.x, center.y, depth, `${geom.id}_tCenter`);
 
-      const be = addEdge('circle', bCenter, bCenter, { center: { ...center, z: 0 }, radius });
-      const te = addEdge('circle', tCenter, tCenter, { center: { ...center, z: depth }, radius });
+      const be = addEdge('circle', bCenter, bCenter, `${geom.id}_be`, {
+        center: { ...center, z: 0 },
+        radius,
+      });
+      const te = addEdge('circle', tCenter, tCenter, `${geom.id}_te`, {
+        center: { ...center, z: depth },
+        radius,
+      });
 
-      const bottomWireId = `w_bottom_c_${Date.now()}`;
+      const bottomWireId = `w_bottom_c_${featureId}_${geom.id}`;
       wires.push({ id: bottomWireId, edgeIds: [be] });
-      const bottomFaceId = `f_bottom_c_${Date.now()}`;
+      const bottomFaceId = `f_bottom_c_${featureId}_${geom.id}`;
       faces.push({
         id: bottomFaceId,
         outerWireId: bottomWireId,
@@ -225,9 +236,9 @@ export function extrudeProfile(profile: SketchGeometry[], depth: number): BrepSh
       });
       shellFaceIds.push(bottomFaceId);
 
-      const topWireId = `w_top_c_${Date.now()}`;
+      const topWireId = `w_top_c_${featureId}_${geom.id}`;
       wires.push({ id: topWireId, edgeIds: [te] });
-      const topFaceId = `f_top_c_${Date.now()}`;
+      const topFaceId = `f_top_c_${featureId}_${geom.id}`;
       faces.push({
         id: topFaceId,
         outerWireId: topWireId,
@@ -236,9 +247,9 @@ export function extrudeProfile(profile: SketchGeometry[], depth: number): BrepSh
       });
       shellFaceIds.push(topFaceId);
 
-      const sideWireId = `w_side_c_${Date.now()}`;
+      const sideWireId = `w_side_c_${featureId}_${geom.id}`;
       wires.push({ id: sideWireId, edgeIds: [be, te] });
-      const sideFaceId = `f_side_c_${Date.now()}`;
+      const sideFaceId = `f_side_c_${featureId}_${geom.id}`;
       faces.push({
         id: sideFaceId,
         outerWireId: sideWireId,
@@ -250,9 +261,9 @@ export function extrudeProfile(profile: SketchGeometry[], depth: number): BrepSh
   }
 
   if (shellFaceIds.length > 0) {
-    const shellId = `shell_${Date.now()}`;
+    const shellId = `shell_${featureId}`;
     shells.push({ id: shellId, faceIds: shellFaceIds });
-    const solidId = `solid_${Date.now()}`;
+    const solidId = `solid_${featureId}`;
     solids.push({ id: solidId, shellId });
   }
 
@@ -270,8 +281,9 @@ export function pocketProfile(
   baseSolid: BrepShape,
   profile: SketchGeometry[],
   depth: number,
+  featureId: string = 'pocket',
 ): BrepShape {
-  const pocketExtrusion = extrudeProfile(profile, depth);
+  const pocketExtrusion = extrudeProfile(profile, depth, featureId);
 
   if (pocketExtrusion.vertices.length === 0) return baseSolid;
 
@@ -403,6 +415,7 @@ export function revolveProfile(
   profile: SketchGeometry[],
   angle: number = 360,
   axis: 'X' | 'Y' = 'Y',
+  featureId: string = 'revolve',
 ): BrepShape {
   const vertices: Vertex3D[] = [];
   const edges: Edge3D[] = [];
@@ -417,8 +430,8 @@ export function revolveProfile(
   const segments = 32;
   const isFullRevolve = Math.abs(angle - 360) < 0.001;
 
-  const addVertex = (x: number, y: number, z: number): string => {
-    const id = `rv_${vertices.length}_${Date.now()}`;
+  const addVertex = (x: number, y: number, z: number, geomId: string = ''): string => {
+    const id = `rv_${vertices.length}_${featureId}${geomId ? `_${geomId}` : ''}`;
     vertices.push({ id, x, y, z });
     return id;
   };
@@ -427,9 +440,10 @@ export function revolveProfile(
     type: 'line' | 'arc' | 'circle',
     startId: string,
     endId: string,
+    geomId: string = '',
     extra?: Partial<Edge3D>,
   ): string => {
-    const id = `re_${edges.length}_${Date.now()}`;
+    const id = `re_${edges.length}_${featureId}${geomId ? `_${geomId}` : ''}`;
     edges.push({ id, type, startVertexId: startId, endVertexId: endId, ...extra });
     return id;
   };
@@ -472,7 +486,7 @@ export function revolveProfile(
         const row: string[] = [];
         for (let j = 0; j < 4; j++) {
           const pt = rotatePoint(pts2D[j].x, pts2D[j].y, theta);
-          row.push(addVertex(pt.x, pt.y, pt.z));
+          row.push(addVertex(pt.x, pt.y, pt.z, `${geom.id}_${i}_${j}`));
         }
         grid.push(row);
       }
@@ -486,15 +500,15 @@ export function revolveProfile(
           const v11 = grid[nextI][nextJ];
           const v01 = grid[i][nextJ];
 
-          const e1 = addEdge('line', v00, v10);
-          const e2 = addEdge('line', v10, v11);
-          const e3 = addEdge('line', v11, v01);
-          const e4 = addEdge('line', v01, v00);
+          const e1 = addEdge('line', v00, v10, `${geom.id}_${j}_${i}_e1`);
+          const e2 = addEdge('line', v10, v11, `${geom.id}_${j}_${i}_e2`);
+          const e3 = addEdge('line', v11, v01, `${geom.id}_${j}_${i}_e3`);
+          const e4 = addEdge('line', v01, v00, `${geom.id}_${j}_${i}_e4`);
 
-          const wireId = `w_rv_face_${j}_${i}_${Date.now()}`;
+          const wireId = `w_rv_face_${geom.id}_${j}_${i}_${featureId}`;
           wires.push({ id: wireId, edgeIds: [e1, e2, e3, e4] });
 
-          const faceId = `f_rv_face_${j}_${i}_${Date.now()}`;
+          const faceId = `f_rv_face_${geom.id}_${j}_${i}_${featureId}`;
           const v00_obj = vertices.find((v) => v.id === v00)!;
           const v10_obj = vertices.find((v) => v.id === v10)!;
           const v01_obj = vertices.find((v) => v.id === v01)!;
@@ -520,14 +534,14 @@ export function revolveProfile(
       }
 
       if (!isFullRevolve) {
-        const startWireId = `w_rv_start_${Date.now()}`;
-        const se1 = addEdge('line', grid[0][0], grid[0][1]);
-        const se2 = addEdge('line', grid[0][1], grid[0][2]);
-        const se3 = addEdge('line', grid[0][2], grid[0][3]);
-        const se4 = addEdge('line', grid[0][3], grid[0][0]);
+        const startWireId = `w_rv_start_${geom.id}_${featureId}`;
+        const se1 = addEdge('line', grid[0][0], grid[0][1], `${geom.id}_se1`);
+        const se2 = addEdge('line', grid[0][1], grid[0][2], `${geom.id}_se2`);
+        const se3 = addEdge('line', grid[0][2], grid[0][3], `${geom.id}_se3`);
+        const se4 = addEdge('line', grid[0][3], grid[0][0], `${geom.id}_se4`);
         wires.push({ id: startWireId, edgeIds: [se1, se2, se3, se4] });
 
-        const startFaceId = `f_rv_start_${Date.now()}`;
+        const startFaceId = `f_rv_start_${geom.id}_${featureId}`;
         faces.push({
           id: startFaceId,
           outerWireId: startWireId,
@@ -537,14 +551,14 @@ export function revolveProfile(
         shellFaceIds.push(startFaceId);
 
         const last = grid.length - 1;
-        const endWireId = `w_rv_end_${Date.now()}`;
-        const ee1 = addEdge('line', grid[last][0], grid[last][1]);
-        const ee2 = addEdge('line', grid[last][1], grid[last][2]);
-        const ee3 = addEdge('line', grid[last][2], grid[last][3]);
-        const ee4 = addEdge('line', grid[last][3], grid[last][0]);
+        const endWireId = `w_rv_end_${geom.id}_${featureId}`;
+        const ee1 = addEdge('line', grid[last][0], grid[last][1], `${geom.id}_ee1`);
+        const ee2 = addEdge('line', grid[last][1], grid[last][2], `${geom.id}_ee2`);
+        const ee3 = addEdge('line', grid[last][2], grid[last][3], `${geom.id}_ee3`);
+        const ee4 = addEdge('line', grid[last][3], grid[last][0], `${geom.id}_ee4`);
         wires.push({ id: endWireId, edgeIds: [ee1, ee2, ee3, ee4] });
 
-        const endFaceId = `f_rv_end_${Date.now()}`;
+        const endFaceId = `f_rv_end_${geom.id}_${featureId}`;
         faces.push({
           id: endFaceId,
           outerWireId: endWireId,
@@ -576,7 +590,7 @@ export function revolveProfile(
         const row: string[] = [];
         for (let j = 0; j < numCircleSegments; j++) {
           const pt = rotatePoint(circlePts[j].x, circlePts[j].y, theta);
-          row.push(addVertex(pt.x, pt.y, pt.z));
+          row.push(addVertex(pt.x, pt.y, pt.z, `${geom.id}_${i}_${j}`));
         }
         grid.push(row);
       }
@@ -590,15 +604,15 @@ export function revolveProfile(
           const v11 = grid[nextI][nextJ];
           const v01 = grid[i][nextJ];
 
-          const e1 = addEdge('line', v00, v10);
-          const e2 = addEdge('line', v10, v11);
-          const e3 = addEdge('line', v11, v01);
-          const e4 = addEdge('line', v01, v00);
+          const e1 = addEdge('line', v00, v10, `${geom.id}_${j}_${i}_e1`);
+          const e2 = addEdge('line', v10, v11, `${geom.id}_${j}_${i}_e2`);
+          const e3 = addEdge('line', v11, v01, `${geom.id}_${j}_${i}_e3`);
+          const e4 = addEdge('line', v01, v00, `${geom.id}_${j}_${i}_e4`);
 
-          const wireId = `w_rv_circ_${j}_${i}_${Date.now()}`;
+          const wireId = `w_rv_circ_${geom.id}_${j}_${i}_${featureId}`;
           wires.push({ id: wireId, edgeIds: [e1, e2, e3, e4] });
 
-          const faceId = `f_rv_circ_${j}_${i}_${Date.now()}`;
+          const faceId = `f_rv_circ_${geom.id}_${j}_${i}_${featureId}`;
           const v00_obj = vertices.find((v) => v.id === v00)!;
           const v10_obj = vertices.find((v) => v.id === v10)!;
           const v01_obj = vertices.find((v) => v.id === v01)!;
@@ -626,9 +640,9 @@ export function revolveProfile(
   }
 
   if (shellFaceIds.length > 0) {
-    const shellId = `shell_${Date.now()}`;
+    const shellId = `shell_${featureId}`;
     shells.push({ id: shellId, faceIds: shellFaceIds });
-    const solidId = `solid_${Date.now()}`;
+    const solidId = `solid_${featureId}`;
     solids.push({ id: solidId, shellId });
   }
 
@@ -709,7 +723,10 @@ export function grooveProfile(
  * @param profiles List of profiles with their respective Z heights.
  * @returns B-Rep solid shape.
  */
-export function loftProfiles(profiles: { geometries: SketchGeometry[]; z: number }[]): BrepShape {
+export function loftProfiles(
+  profiles: { geometries: SketchGeometry[]; z: number }[],
+  featureId: string = 'loft',
+): BrepShape {
   const vertices: Vertex3D[] = [];
   const edges: Edge3D[] = [];
   const wires: Wire3D[] = [];
@@ -724,13 +741,13 @@ export function loftProfiles(profiles: { geometries: SketchGeometry[]; z: number
   const grid: string[][] = [];
 
   const addVertex = (x: number, y: number, z: number): string => {
-    const id = `lv_${vertices.length}_${Date.now()}`;
+    const id = `lv_${vertices.length}_${featureId}`;
     vertices.push({ id, x, y, z });
     return id;
   };
 
   const addEdge = (type: 'line' | 'arc' | 'circle', startId: string, endId: string): string => {
-    const id = `le_${edges.length}_${Date.now()}`;
+    const id = `le_${edges.length}_${featureId}`;
     edges.push({ id, type, startVertexId: startId, endVertexId: endId });
     return id;
   };
@@ -764,10 +781,10 @@ export function loftProfiles(profiles: { geometries: SketchGeometry[]; z: number
       const e3 = addEdge('line', v11, v01);
       const e4 = addEdge('line', v01, v00);
 
-      const wireId = `w_loft_side_${i}_${j}_${Date.now()}`;
+      const wireId = `w_loft_side_${featureId}_${i}_${j}`;
       wires.push({ id: wireId, edgeIds: [e1, e2, e3, e4] });
 
-      const faceId = `f_loft_side_${i}_${j}_${Date.now()}`;
+      const faceId = `f_loft_side_${featureId}_${i}_${j}`;
       const v00_obj = vertices.find((v) => v.id === v00)!;
       const v10_obj = vertices.find((v) => v.id === v10)!;
       const v01_obj = vertices.find((v) => v.id === v01)!;
@@ -796,9 +813,9 @@ export function loftProfiles(profiles: { geometries: SketchGeometry[]; z: number
   for (let j = 0; j < M; j++) {
     bottomWireIds.push(addEdge('line', grid[0][j], grid[0][(j + 1) % M]));
   }
-  const bottomWireId = `w_loft_bottom_${Date.now()}`;
+  const bottomWireId = `w_loft_bottom_${featureId}`;
   wires.push({ id: bottomWireId, edgeIds: bottomWireIds });
-  const bottomFaceId = `f_loft_bottom_${Date.now()}`;
+  const bottomFaceId = `f_loft_bottom_${featureId}`;
   faces.push({
     id: bottomFaceId,
     outerWireId: bottomWireId,
@@ -812,9 +829,9 @@ export function loftProfiles(profiles: { geometries: SketchGeometry[]; z: number
   for (let j = 0; j < M; j++) {
     topWireIds.push(addEdge('line', grid[lastIdx][j], grid[lastIdx][(j + 1) % M]));
   }
-  const topWireId = `w_loft_top_${Date.now()}`;
+  const topWireId = `w_loft_top_${featureId}`;
   wires.push({ id: topWireId, edgeIds: topWireIds });
-  const topFaceId = `f_loft_top_${Date.now()}`;
+  const topFaceId = `f_loft_top_${featureId}`;
   faces.push({
     id: topFaceId,
     outerWireId: topWireId,
@@ -824,9 +841,9 @@ export function loftProfiles(profiles: { geometries: SketchGeometry[]; z: number
   shellFaceIds.push(topFaceId);
 
   if (shellFaceIds.length > 0) {
-    const shellId = `shell_${Date.now()}`;
+    const shellId = `shell_${featureId}`;
     shells.push({ id: shellId, faceIds: shellFaceIds });
-    const solidId = `solid_${Date.now()}`;
+    const solidId = `solid_${featureId}`;
     solids.push({ id: solidId, shellId });
   }
 
@@ -878,6 +895,7 @@ export function getSketchTrajectoryPoints(
 export function sweepProfile(
   profile: SketchGeometry[],
   trajectory: { x: number; y: number; z: number }[],
+  featureId: string = 'sweep',
 ): BrepShape {
   const vertices: Vertex3D[] = [];
   const edges: Edge3D[] = [];
@@ -997,13 +1015,13 @@ export function sweepProfile(
   const grid: string[][] = [];
 
   const addVertex = (x: number, y: number, z: number): string => {
-    const id = `sv_${vertices.length}_${Date.now()}`;
+    const id = `sv_${vertices.length}_${featureId}`;
     vertices.push({ id, x, y, z });
     return id;
   };
 
   const addEdge = (type: 'line' | 'arc' | 'circle', startId: string, endId: string): string => {
-    const id = `se_${edges.length}_${Date.now()}`;
+    const id = `se_${edges.length}_${featureId}`;
     edges.push({ id, type, startVertexId: startId, endVertexId: endId });
     return id;
   };
@@ -1036,10 +1054,10 @@ export function sweepProfile(
       const e3 = addEdge('line', v11, v01);
       const e4 = addEdge('line', v01, v00);
 
-      const wireId = `w_sweep_side_${i}_${j}_${Date.now()}`;
+      const wireId = `w_sweep_side_${featureId}_${i}_${j}`;
       wires.push({ id: wireId, edgeIds: [e1, e2, e3, e4] });
 
-      const faceId = `f_sweep_side_${i}_${j}_${Date.now()}`;
+      const faceId = `f_sweep_side_${featureId}_${i}_${j}`;
       const v00_obj = vertices.find((v) => v.id === v00)!;
       const v10_obj = vertices.find((v) => v.id === v10)!;
       const v01_obj = vertices.find((v) => v.id === v01)!;
@@ -1068,9 +1086,9 @@ export function sweepProfile(
   for (let j = 0; j < M; j++) {
     bottomWireIds.push(addEdge('line', grid[0][j], grid[0][(j + 1) % M]));
   }
-  const bottomWireId = `w_sweep_bottom_${Date.now()}`;
+  const bottomWireId = `w_sweep_bottom_${featureId}`;
   wires.push({ id: bottomWireId, edgeIds: bottomWireIds });
-  const bottomFaceId = `f_sweep_bottom_${Date.now()}`;
+  const bottomFaceId = `f_sweep_bottom_${featureId}`;
   faces.push({
     id: bottomFaceId,
     outerWireId: bottomWireId,
@@ -1084,9 +1102,9 @@ export function sweepProfile(
   for (let j = 0; j < M; j++) {
     topWireIds.push(addEdge('line', grid[lastIdx][j], grid[lastIdx][(j + 1) % M]));
   }
-  const topWireId = `w_sweep_top_${Date.now()}`;
+  const topWireId = `w_sweep_top_${featureId}`;
   wires.push({ id: topWireId, edgeIds: topWireIds });
-  const topFaceId = `f_sweep_top_${Date.now()}`;
+  const topFaceId = `f_sweep_top_${featureId}`;
   faces.push({
     id: topFaceId,
     outerWireId: topWireId,
@@ -1096,9 +1114,9 @@ export function sweepProfile(
   shellFaceIds.push(topFaceId);
 
   if (shellFaceIds.length > 0) {
-    const shellId = `shell_${Date.now()}`;
+    const shellId = `shell_${featureId}`;
     shells.push({ id: shellId, faceIds: shellFaceIds });
-    const solidId = `solid_${Date.now()}`;
+    const solidId = `solid_${featureId}`;
     solids.push({ id: solidId, shellId });
   }
 
@@ -1118,18 +1136,19 @@ export function helixPath(
   height: number = 20,
   radius: number = 10,
   handedness: 'right' | 'left' = 'right',
+  featureId: string = 'helix',
 ): BrepShape {
   const vertices: Vertex3D[] = [];
   const edges: Edge3D[] = [];
 
   const addVertex = (x: number, y: number, z: number): string => {
-    const id = `hv_${vertices.length}_${Date.now()}`;
+    const id = `hv_${vertices.length}_${featureId}`;
     vertices.push({ id, x, y, z });
     return id;
   };
 
   const addEdge = (type: 'line' | 'arc' | 'circle', startId: string, endId: string): string => {
-    const id = `he_${edges.length}_${Date.now()}`;
+    const id = `he_${edges.length}_${featureId}`;
     edges.push({ id, type, startVertexId: startId, endVertexId: endId });
     return id;
   };
@@ -1158,7 +1177,7 @@ export function helixPath(
 
   const wires: Wire3D[] = [];
   if (edgeIds.length > 0) {
-    wires.push({ id: `wire_helix_${Date.now()}`, edgeIds });
+    wires.push({ id: `wire_helix_${featureId}`, edgeIds });
   }
 
   return { vertices, edges, wires, faces: [], shells: [], solids: [] };
@@ -1526,6 +1545,7 @@ export function linearPatternSolid(
   count: number = 2,
   spacing: number = 15,
   direction: 'X' | 'Y' | 'Z' = 'X',
+  featureId: string = 'lp',
 ): BrepShape {
   if (baseSolid.vertices.length === 0 || count <= 1) return baseSolid;
 
@@ -1547,7 +1567,7 @@ export function linearPatternSolid(
 
     for (let vIdx = 0; vIdx < originalVertexCount; vIdx++) {
       const v = baseSolid.vertices[vIdx];
-      const newId = `lp_v_${i}_${vIdx}_${Date.now()}`;
+      const newId = `lp_v_${featureId}_${i}_${vIdx}`;
       vertexMap.set(v.id, newId);
       vertices.push({
         id: newId,
@@ -1560,7 +1580,7 @@ export function linearPatternSolid(
     const edgeMap = new Map<string, string>();
     for (let eIdx = 0; eIdx < originalEdgeCount; eIdx++) {
       const e = baseSolid.edges[eIdx];
-      const newId = `lp_e_${i}_${eIdx}_${Date.now()}`;
+      const newId = `lp_e_${featureId}_${i}_${eIdx}`;
       edgeMap.set(e.id, newId);
       edges.push({
         id: newId,
@@ -1581,7 +1601,7 @@ export function linearPatternSolid(
     const wireMap = new Map<string, string>();
     for (let wIdx = 0; wIdx < originalWireCount; wIdx++) {
       const w = baseSolid.wires[wIdx];
-      const newId = `lp_w_${i}_${wIdx}_${Date.now()}`;
+      const newId = `lp_w_${featureId}_${i}_${wIdx}`;
       wireMap.set(w.id, newId);
       wires.push({
         id: newId,
@@ -1591,7 +1611,7 @@ export function linearPatternSolid(
 
     for (let fIdx = 0; fIdx < originalFaceCount; fIdx++) {
       const f = baseSolid.faces[fIdx];
-      const newId = `lp_f_${i}_${fIdx}_${Date.now()}`;
+      const newId = `lp_f_${featureId}_${i}_${fIdx}`;
       faces.push({
         id: newId,
         outerWireId: wireMap.get(f.outerWireId)!,
@@ -1617,6 +1637,7 @@ export function polarPatternSolid(
   count: number = 4,
   totalAngle: number = 360,
   axis: 'X' | 'Y' | 'Z' = 'Z',
+  featureId: string = 'pp',
 ): BrepShape {
   if (baseSolid.vertices.length === 0 || count <= 1) return baseSolid;
 
@@ -1662,7 +1683,7 @@ export function polarPatternSolid(
 
     for (let vIdx = 0; vIdx < originalVertexCount; vIdx++) {
       const v = baseSolid.vertices[vIdx];
-      const newId = `pp_v_${i}_${vIdx}_${Date.now()}`;
+      const newId = `pp_v_${featureId}_${i}_${vIdx}`;
       vertexMap.set(v.id, newId);
       const rot = rotate(v.x, v.y, v.z);
       vertices.push({ id: newId, ...rot });
@@ -1671,7 +1692,7 @@ export function polarPatternSolid(
     const edgeMap = new Map<string, string>();
     for (let eIdx = 0; eIdx < originalEdgeCount; eIdx++) {
       const e = baseSolid.edges[eIdx];
-      const newId = `pp_e_${i}_${eIdx}_${Date.now()}`;
+      const newId = `pp_e_${featureId}_${i}_${eIdx}`;
       edgeMap.set(e.id, newId);
       const rotStart = rotate(e.center?.x || 0, e.center?.y || 0, e.center?.z || 0);
       edges.push({
@@ -1687,7 +1708,7 @@ export function polarPatternSolid(
     const wireMap = new Map<string, string>();
     for (let wIdx = 0; wIdx < originalWireCount; wIdx++) {
       const w = baseSolid.wires[wIdx];
-      const newId = `pp_w_${i}_${wIdx}_${Date.now()}`;
+      const newId = `pp_w_${featureId}_${i}_${wIdx}`;
       wireMap.set(w.id, newId);
       wires.push({
         id: newId,
@@ -1697,7 +1718,7 @@ export function polarPatternSolid(
 
     for (let fIdx = 0; fIdx < originalFaceCount; fIdx++) {
       const f = baseSolid.faces[fIdx];
-      const newId = `pp_f_${i}_${fIdx}_${Date.now()}`;
+      const newId = `pp_f_${featureId}_${i}_${fIdx}`;
       const rotNormal = rotate(f.normal.x, f.normal.y, f.normal.z);
       faces.push({
         id: newId,
@@ -1717,7 +1738,11 @@ export function polarPatternSolid(
  * @param plane Mirror plane ('XY' | 'XZ' | 'YZ').
  * @returns Combined B-Rep shape containing original and mirrored solids.
  */
-export function mirrorSolid(baseSolid: BrepShape, plane: 'XY' | 'XZ' | 'YZ' = 'YZ'): BrepShape {
+export function mirrorSolid(
+  baseSolid: BrepShape,
+  plane: 'XY' | 'XZ' | 'YZ' = 'YZ',
+  featureId: string = 'mirror',
+): BrepShape {
   if (baseSolid.vertices.length === 0) return baseSolid;
 
   const vertices = [...baseSolid.vertices];
@@ -1744,7 +1769,7 @@ export function mirrorSolid(baseSolid: BrepShape, plane: 'XY' | 'XZ' | 'YZ' = 'Y
 
   for (let vIdx = 0; vIdx < originalVertexCount; vIdx++) {
     const v = baseSolid.vertices[vIdx];
-    const newId = `m_v_${vIdx}_${Date.now()}`;
+    const newId = `m_v_${featureId}_${vIdx}`;
     vertexMap.set(v.id, newId);
     const ref = reflect(v.x, v.y, v.z);
     vertices.push({ id: newId, ...ref });
@@ -1753,7 +1778,7 @@ export function mirrorSolid(baseSolid: BrepShape, plane: 'XY' | 'XZ' | 'YZ' = 'Y
   const edgeMap = new Map<string, string>();
   for (let eIdx = 0; eIdx < originalEdgeCount; eIdx++) {
     const e = baseSolid.edges[eIdx];
-    const newId = `m_e_${eIdx}_${Date.now()}`;
+    const newId = `m_e_${featureId}_${eIdx}`;
     edgeMap.set(e.id, newId);
     const refCenter = reflect(e.center?.x || 0, e.center?.y || 0, e.center?.z || 0);
     edges.push({
@@ -1769,7 +1794,7 @@ export function mirrorSolid(baseSolid: BrepShape, plane: 'XY' | 'XZ' | 'YZ' = 'Y
   const wireMap = new Map<string, string>();
   for (let wIdx = 0; wIdx < originalWireCount; wIdx++) {
     const w = baseSolid.wires[wIdx];
-    const newId = `m_w_${wIdx}_${Date.now()}`;
+    const newId = `m_w_${featureId}_${wIdx}`;
     wireMap.set(w.id, newId);
     wires.push({
       id: newId,
@@ -1779,7 +1804,7 @@ export function mirrorSolid(baseSolid: BrepShape, plane: 'XY' | 'XZ' | 'YZ' = 'Y
 
   for (let fIdx = 0; fIdx < originalFaceCount; fIdx++) {
     const f = baseSolid.faces[fIdx];
-    const newId = `m_f_${fIdx}_${Date.now()}`;
+    const newId = `m_f_${featureId}_${fIdx}`;
     const refNormal = reflect(f.normal.x, f.normal.y, f.normal.z);
     faces.push({
       id: newId,
@@ -1814,18 +1839,18 @@ export function buildSolidFromFeatures(features: Feature[]): BrepShape {
       currentSketchGeoms = geoms;
     } else if (f.type === 'pad') {
       const distanceVal = (f.params.distance as number) ?? 10;
-      solid = extrudeProfile(currentSketchGeoms, distanceVal);
+      solid = extrudeProfile(currentSketchGeoms, distanceVal, f.id);
       shapesMap.set(f.id, solid);
     } else if (f.type === 'pocket') {
       const distanceVal = (f.params.distance as number) ?? 5;
       if (solid.vertices.length > 0) {
-        solid = pocketProfile(solid, currentSketchGeoms, distanceVal);
+        solid = pocketProfile(solid, currentSketchGeoms, distanceVal, f.id);
       }
       shapesMap.set(f.id, solid);
     } else if (f.type === 'revolution') {
       const angleVal = (f.params.angle as number) ?? 360;
       const axisVal = (f.params.axis as 'X' | 'Y') ?? 'Y';
-      solid = revolveProfile(currentSketchGeoms, angleVal, axisVal);
+      solid = revolveProfile(currentSketchGeoms, angleVal, axisVal, f.id);
       shapesMap.set(f.id, solid);
     } else if (f.type === 'groove') {
       const angleVal = (f.params.angle as number) ?? 360;
@@ -1841,7 +1866,7 @@ export function buildSolidFromFeatures(features: Feature[]): BrepShape {
         z: sketchZOffsetMap.get(id) || 0,
       }));
       if (profiles.length >= 2) {
-        solid = loftProfiles(profiles);
+        solid = loftProfiles(profiles, f.id);
       }
       shapesMap.set(f.id, solid);
     } else if (f.type === 'pipe') {
@@ -1861,7 +1886,7 @@ export function buildSolidFromFeatures(features: Feature[]): BrepShape {
       }
 
       if (prof.length > 0 && trajPts.length >= 2) {
-        solid = sweepProfile(prof, trajPts);
+        solid = sweepProfile(prof, trajPts, f.id);
       }
       shapesMap.set(f.id, solid);
     } else if (f.type === 'helix') {
@@ -1869,7 +1894,7 @@ export function buildSolidFromFeatures(features: Feature[]): BrepShape {
       const heightVal = (f.params.height as number) ?? 20;
       const radiusVal = (f.params.radius as number) ?? 10;
       const handednessVal = (f.params.handedness as 'right' | 'left') ?? 'right';
-      solid = helixPath(pitchVal, heightVal, radiusVal, handednessVal);
+      solid = helixPath(pitchVal, heightVal, radiusVal, handednessVal, f.id);
       shapesMap.set(f.id, solid);
     } else if (f.type === 'fillet') {
       const radiusVal = (f.params.radius as number) ?? 2;
@@ -1918,7 +1943,7 @@ export function buildSolidFromFeatures(features: Feature[]): BrepShape {
       const spacingVal = (f.params.spacing as number) ?? 15;
       const directionVal = (f.params.direction as 'X' | 'Y' | 'Z') ?? 'X';
       if (solid.vertices.length > 0) {
-        solid = linearPatternSolid(solid, countVal, spacingVal, directionVal);
+        solid = linearPatternSolid(solid, countVal, spacingVal, directionVal, f.id);
       }
       shapesMap.set(f.id, solid);
     } else if (f.type === 'polar_pattern') {
@@ -1926,13 +1951,13 @@ export function buildSolidFromFeatures(features: Feature[]): BrepShape {
       const totalAngleVal = (f.params.totalAngle as number) ?? 360;
       const axisVal = (f.params.axis as 'X' | 'Y' | 'Z') ?? 'Z';
       if (solid.vertices.length > 0) {
-        solid = polarPatternSolid(solid, countVal, totalAngleVal, axisVal);
+        solid = polarPatternSolid(solid, countVal, totalAngleVal, axisVal, f.id);
       }
       shapesMap.set(f.id, solid);
     } else if (f.type === 'mirror') {
       const planeVal = (f.params.plane as 'XY' | 'XZ' | 'YZ') ?? 'YZ';
       if (solid.vertices.length > 0) {
-        solid = mirrorSolid(solid, planeVal);
+        solid = mirrorSolid(solid, planeVal, f.id);
       }
       shapesMap.set(f.id, solid);
     } else if (f.type === 'union') {

@@ -4,6 +4,8 @@ import {
   CircleDot,
   Compass,
   CornerDownRight,
+  Download,
+  FolderInput,
   Link as LinkIcon,
   Lock,
   MousePointer,
@@ -19,8 +21,10 @@ import {
 } from 'lucide-react';
 import { type ReactNode } from 'react';
 
+import { buildSolidFromFeatures } from '../core/brep.ts';
 import { type SelectedElement, useCad } from '../store/CadContext.tsx';
 import type { SketchGeometry } from '../store/types.ts';
+import { exportToObj, exportToStep, exportToStl, importFromStep } from '../utils/exporters.ts';
 
 /**
  * Top Toolbar component containing global actions, drawing tools, and constraint application.
@@ -39,11 +43,48 @@ export default function Toolbar(): ReactNode {
     toggleConstructionGeometries,
     addSketchConstraint,
     documentState,
+    addFeature,
   } = useCad();
 
   const { activeSketchId, features } = documentState;
   const activeSketch = features.find((f) => f.id === activeSketchId);
   const geometries = (activeSketch?.params.geometries as SketchGeometry[]) || [];
+
+  const handleExportStl = () => {
+    const solid = buildSolidFromFeatures(features);
+    exportToStl(solid, 'model.stl');
+  };
+
+  const handleExportObj = () => {
+    const solid = buildSolidFromFeatures(features);
+    exportToObj(solid, 'model.obj');
+  };
+
+  const handleExportStep = () => {
+    const solid = buildSolidFromFeatures(features);
+    exportToStep(solid, 'model.stp');
+  };
+
+  const handleImportStep = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      const importedShape = importFromStep(content);
+      if (importedShape.vertices.length > 0) {
+        const geoms = importedShape.vertices.map((v, idx) => ({
+          type: 'line' as const,
+          id: `line_imported_${idx}_${Date.now()}`,
+          start: { x: v.x, y: v.y },
+          end: { x: v.x + 10, y: v.y },
+        }));
+        addFeature('sketch', 'Imported STEP', { geometries: geoms }, []);
+      }
+    };
+    reader.readAsText(file);
+  };
 
   // Helper to resolve the type of a selected element
   const getElementType = (el: SelectedElement) => {
@@ -200,6 +241,32 @@ export default function Toolbar(): ReactNode {
           <Save size={16} />
           Save
         </button>
+        <button className="toolbar-btn" onClick={handleExportStl} title="Export STL">
+          <Download size={16} />
+          STL
+        </button>
+        <button className="toolbar-btn" onClick={handleExportObj} title="Export OBJ">
+          <Download size={16} />
+          OBJ
+        </button>
+        <button className="toolbar-btn" onClick={handleExportStep} title="Export STEP">
+          <Download size={16} />
+          STEP
+        </button>
+        <label
+          className="toolbar-btn"
+          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+          title="Import STEP"
+        >
+          <FolderInput size={16} />
+          Import
+          <input
+            type="file"
+            accept=".stp,.step"
+            onChange={handleImportStep}
+            style={{ display: 'none' }}
+          />
+        </label>
         <div className="toolbar-divider" />
 
         {/* Drawing Tools Group */}

@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 
 import Sidebar from './components/Sidebar.tsx';
 import SketchCanvas from './components/SketchCanvas.tsx';
@@ -12,8 +12,63 @@ import { CadProvider, useCad } from './store/CadContext.tsx';
  */
 function WorkspaceShell(): ReactNode {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { documentState } = useCad();
-  const { activeSketchId } = documentState;
+  const { documentState, undo, redo, setActiveTool, addFeature } = useCad();
+  const { activeSketchId, features } = documentState;
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      if (
+        activeEl &&
+        (activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'SELECT' ||
+          activeEl.tagName === 'TEXTAREA')
+      ) {
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        undo();
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        redo();
+      } else {
+        switch (e.key.toLowerCase()) {
+          case 'l':
+            setActiveTool('line');
+            break;
+          case 'c':
+            setActiveTool('circle');
+            break;
+          case 'r':
+            setActiveTool('rect');
+            break;
+          case 's':
+          case 'escape':
+            setActiveTool('select');
+            break;
+          case 'e': {
+            const count = features.filter((f) => f.type === 'pad').length + 1;
+            addFeature(
+              'pad',
+              `Pad ${count}`,
+              {},
+              features.length > 0 ? [features[features.length - 1].id] : [],
+            );
+            break;
+          }
+          default:
+            break;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [undo, redo, setActiveTool, addFeature, features]);
 
   return (
     <div className="app-container">

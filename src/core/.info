@@ -6,3 +6,5 @@ solver.ts
 	Non-linear numerical Newton-Raphson 2D CAD constraint solver engine.
 solver.test.ts
 	Unit tests for the CAD constraint solver engine.
+brep.ts
+	High-fidelity 3D Boundary Representation (B-Rep) solid modeling kernel operations.

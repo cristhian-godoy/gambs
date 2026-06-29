@@ -1,2 +1,2 @@
-# Utils Directory
-# Contains general-purpose helper functions and utilities.
+exporters.ts
+	STEP B-Rep, STL, and OBJ 3D mesh exporters and STEP files importer.

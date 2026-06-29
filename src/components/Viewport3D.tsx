@@ -2,9 +2,8 @@ import { type ReactNode, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
-import { type BrepShape, extrudeProfile, pocketProfile, type Vertex3D } from '../core/brep.ts';
+import { type BrepShape, buildSolidFromFeatures, type Vertex3D } from '../core/brep.ts';
 import { useCad } from '../store/CadContext.tsx';
-import type { SketchGeometry } from '../store/types.ts';
 
 /**
  * Helper to build THREE.BufferGeometry from a BrepShape solid.
@@ -194,22 +193,7 @@ export default function Viewport3D(): ReactNode {
     scene.add(dirLight);
 
     // 5. Evaluate features chronologically to build solid B-Rep representation
-    let solid: BrepShape | null = null;
-    let currentSketchGeoms: SketchGeometry[] = [];
-
-    for (const f of features) {
-      if (f.type === 'sketch') {
-        currentSketchGeoms = (f.params.geometries as SketchGeometry[]) || [];
-      } else if (f.type === 'pad') {
-        const distanceVal = (f.params.distance as number) ?? 10;
-        solid = extrudeProfile(currentSketchGeoms, distanceVal);
-      } else if (f.type === 'pocket') {
-        const distanceVal = (f.params.distance as number) ?? 5;
-        if (solid) {
-          solid = pocketProfile(solid, currentSketchGeoms, distanceVal);
-        }
-      }
-    }
+    const solid = buildSolidFromFeatures(features);
 
     let geometry: THREE.BufferGeometry | null = null;
     let material: THREE.MeshStandardMaterial | null = null;
@@ -217,22 +201,40 @@ export default function Viewport3D(): ReactNode {
     let wireframeMat: THREE.LineBasicMaterial | null = null;
 
     if (solid && solid.vertices.length > 0) {
-      geometry = buildThreeGeometry(solid);
-      material = new THREE.MeshStandardMaterial({
-        color: '#38bdf8', // beautiful light blue
-        roughness: 0.2,
-        metalness: 0.1,
-        transparent: true,
-        opacity: 0.9,
-      });
-      const mesh = new THREE.Mesh(geometry, material);
-      scene.add(mesh);
+      if (solid.faces.length > 0) {
+        geometry = buildThreeGeometry(solid);
+        material = new THREE.MeshStandardMaterial({
+          color: '#38bdf8', // beautiful light blue
+          roughness: 0.2,
+          metalness: 0.1,
+          transparent: true,
+          opacity: 0.9,
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
 
-      // Wireframe edges overlay
-      wireframeGeom = new THREE.EdgesGeometry(geometry);
-      wireframeMat = new THREE.LineBasicMaterial({ color: '#ffffff', linewidth: 1.5 });
-      const wireframe = new THREE.LineSegments(wireframeGeom, wireframeMat);
-      mesh.add(wireframe);
+        // Wireframe edges overlay
+        wireframeGeom = new THREE.EdgesGeometry(geometry);
+        wireframeMat = new THREE.LineBasicMaterial({ color: '#ffffff', linewidth: 1.5 });
+        const wireframe = new THREE.LineSegments(wireframeGeom, wireframeMat);
+        mesh.add(wireframe);
+      } else {
+        // Render as 3D line path (e.g. Helix)
+        const linePositions: number[] = [];
+        for (const edge of solid.edges) {
+          const vStart = solid.vertices.find((v) => v.id === edge.startVertexId);
+          const vEnd = solid.vertices.find((v) => v.id === edge.endVertexId);
+          if (vStart && vEnd) {
+            linePositions.push(vStart.x, vStart.y, vStart.z);
+            linePositions.push(vEnd.x, vEnd.y, vEnd.z);
+          }
+        }
+        geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+        const lineMat = new THREE.LineBasicMaterial({ color: '#f59e0b', linewidth: 2.0 });
+        const line = new THREE.LineSegments(geometry, lineMat);
+        scene.add(line);
+      }
     } else {
       // No 3D solids created yet -> Render simple translucent grid box
       geometry = new THREE.BoxGeometry(20, 20, 20);

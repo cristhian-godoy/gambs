@@ -1,2 +1,4 @@
-# Core Directory
-# Contains pure mathematical, geometry solvers, and CAD kernel integrations.
+geometry.ts
+	Geometrical data structures, math utilities, renderers, and bounding box calculators.
+geometry.test.ts
+	Unit tests for geometrical math calculations and bounding boxes.

@@ -68,6 +68,13 @@ interface CadContextType {
   setSelectionFilter: (filter: 'vertices' | 'edges' | 'faces' | 'all') => void;
   isSelectingSupportPlane: boolean;
   setIsSelectingSupportPlane: (val: boolean) => void;
+  contextMenu: {
+    x: number;
+    y: number;
+    options: { label: string; action: () => void }[];
+  } | null;
+  showContextMenu: (x: number, y: number, options: { label: string; action: () => void }[]) => void;
+  closeContextMenu: () => void;
 }
 
 const CadContext = createContext<CadContextType | undefined>(undefined);
@@ -106,6 +113,23 @@ export function CadProvider({ children }: { children: ReactNode }): ReactNode {
     'all',
   );
   const [settings, setSettings] = useState<AppSettings>(getInitialSettings);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    options: { label: string; action: () => void }[];
+  } | null>(null);
+
+  const showContextMenu = (
+    x: number,
+    y: number,
+    options: { label: string; action: () => void }[],
+  ) => {
+    setContextMenu({ x, y, options });
+  };
+
+  const closeContextMenu = () => {
+    setContextMenu(null);
+  };
 
   const updateSettings = (newSettings: Partial<AppSettings>) => {
     setSettings((prev) => {
@@ -280,6 +304,9 @@ export function CadProvider({ children }: { children: ReactNode }): ReactNode {
     setSelectionFilter,
     isSelectingSupportPlane,
     setIsSelectingSupportPlane,
+    contextMenu,
+    showContextMenu,
+    closeContextMenu,
   };
 
   return <CadContext.Provider value={value}>{children}</CadContext.Provider>;

@@ -35,6 +35,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
     isSelectingSupportPlane,
     setIsSelectingSupportPlane,
     setActiveBody,
+    showContextMenu,
   } = useCad();
   const { features, activeFeatureId, activeBodyId } = documentState;
 
@@ -1351,6 +1352,27 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
               setActiveBody(isActiveBody ? null : feature.id);
             }
           }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            showContextMenu(e.clientX, e.clientY, [
+              {
+                label: 'Rename',
+                action: () => {
+                  const newName = prompt('Enter new feature name:', feature.name);
+                  if (newName && newName.trim() !== '') {
+                    updateFeature(feature.id, { name: newName.trim() });
+                  }
+                },
+              },
+              {
+                label: 'Delete',
+                action: () => {
+                  deleteFeature(feature.id);
+                },
+              },
+            ]);
+          }}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -1502,6 +1524,25 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
         <div
           className="sidebar-content"
           style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto' }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            showContextMenu(e.clientX, e.clientY, [
+              {
+                label: 'Add Part',
+                action: () => {
+                  const count = features.filter((f) => f.type === 'part').length + 1;
+                  addFeature('part', `Part ${count}`);
+                },
+              },
+              {
+                label: 'Add Body',
+                action: () => {
+                  const count = features.filter((f) => f.type === 'body').length + 1;
+                  addFeature('body', `Body ${count}`);
+                },
+              },
+            ]);
+          }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {(() => {

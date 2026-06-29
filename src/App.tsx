@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useState } from 'react';
 
+import ContextMenu from './components/ContextMenu.tsx';
 import SettingsModal from './components/SettingsModal.tsx';
 import Sidebar from './components/Sidebar.tsx';
 import SketchCanvas from './components/SketchCanvas.tsx';
@@ -109,6 +110,7 @@ function WorkspaceShell(): ReactNode {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
       />
+      <ContextMenu />
     </div>
   );
 }

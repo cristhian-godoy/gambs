@@ -289,7 +289,8 @@ export function cadReducer(state: CadHistoryState, action: CadAction): CadHistor
     case 'UPDATE_FEATURE': {
       const nextFeatures = present.features.map((f) => {
         if (f.id === action.id) {
-          const combinedParams = { ...f.params, ...action.params };
+          const { name, ...otherParams } = action.params;
+          const combinedParams = { ...f.params, ...otherParams };
           if (f.type === 'sketch') {
             const geometries = (combinedParams.geometries as SketchGeometry[]) || [];
             const constraints = (combinedParams.constraints as SketchConstraint[]) || [];
@@ -304,6 +305,7 @@ export function cadReducer(state: CadHistoryState, action: CadAction): CadHistor
           }
           return {
             ...f,
+            name: name !== undefined ? (name as string) : f.name,
             params: combinedParams,
           };
         }

@@ -24,7 +24,8 @@ export type FeatureType =
   | 'difference'
   | 'intersection'
   | 'part'
-  | 'body';
+  | 'body'
+  | 'folder';
 
 /**
  * Discrimination structure for geometries in a sketch.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { cadReducer, initialHistoryState } from './cadStore.ts';
+import { cadReducer } from './cadStore.ts';
 import type { Feature, SketchGeometry } from './types.ts';
 
 describe('cadReducer', () => {
@@ -20,8 +20,14 @@ describe('cadReducer', () => {
     dependencies: ['f1'],
   };
 
+  const testHistoryState = {
+    past: [],
+    present: { features: [], activeFeatureId: null, activeSketchId: null },
+    future: [],
+  };
+
   it('handles ADD_FEATURE action', () => {
-    let state = cadReducer(initialHistoryState, { type: 'ADD_FEATURE', feature: mockFeature1 });
+    let state = cadReducer(testHistoryState, { type: 'ADD_FEATURE', feature: mockFeature1 });
     expect(state.present.features).toHaveLength(1);
     expect(state.present.features[0]).toEqual(mockFeature1);
     expect(state.present.activeFeatureId).toBe('f1');
@@ -36,7 +42,7 @@ describe('cadReducer', () => {
   });
 
   it('handles UNDO and REDO actions', () => {
-    let state = cadReducer(initialHistoryState, { type: 'ADD_FEATURE', feature: mockFeature1 });
+    let state = cadReducer(testHistoryState, { type: 'ADD_FEATURE', feature: mockFeature1 });
     state = cadReducer(state, { type: 'ADD_FEATURE', feature: mockFeature2 });
 
     // Undo
@@ -53,7 +59,7 @@ describe('cadReducer', () => {
   });
 
   it('handles UPDATE_FEATURE action', () => {
-    let state = cadReducer(initialHistoryState, { type: 'ADD_FEATURE', feature: mockFeature1 });
+    let state = cadReducer(testHistoryState, { type: 'ADD_FEATURE', feature: mockFeature1 });
     state = cadReducer(state, { type: 'ADD_FEATURE', feature: mockFeature2 });
 
     state = cadReducer(state, {
@@ -66,7 +72,7 @@ describe('cadReducer', () => {
   });
 
   it('handles DELETE_FEATURE and cascades dependencies', () => {
-    let state = cadReducer(initialHistoryState, { type: 'ADD_FEATURE', feature: mockFeature1 });
+    let state = cadReducer(testHistoryState, { type: 'ADD_FEATURE', feature: mockFeature1 });
     state = cadReducer(state, { type: 'ADD_FEATURE', feature: mockFeature2 });
 
     // Delete f1 (which f2 depends on)
@@ -76,7 +82,7 @@ describe('cadReducer', () => {
   });
 
   it('handles SET_ACTIVE_FEATURE (rollback)', () => {
-    let state = cadReducer(initialHistoryState, { type: 'ADD_FEATURE', feature: mockFeature1 });
+    let state = cadReducer(testHistoryState, { type: 'ADD_FEATURE', feature: mockFeature1 });
     state = cadReducer(state, { type: 'ADD_FEATURE', feature: mockFeature2 });
 
     // Rollback to f1
@@ -100,7 +106,7 @@ describe('cadReducer', () => {
   });
 
   it('handles sketch editing and geometry actions', () => {
-    let state = cadReducer(initialHistoryState, { type: 'ADD_FEATURE', feature: mockFeature1 });
+    let state = cadReducer(testHistoryState, { type: 'ADD_FEATURE', feature: mockFeature1 });
 
     // Enter edit mode
     state = cadReducer(state, { type: 'ENTER_SKETCH_EDIT', id: 'f1' });
@@ -126,7 +132,7 @@ describe('cadReducer', () => {
   });
 
   it('calculates degrees of freedom (DOF) and updates status on UPDATE_FEATURE', () => {
-    let state = cadReducer(initialHistoryState, { type: 'ADD_FEATURE', feature: mockFeature1 });
+    let state = cadReducer(testHistoryState, { type: 'ADD_FEATURE', feature: mockFeature1 });
     state = cadReducer(state, { type: 'ENTER_SKETCH_EDIT', id: 'f1' });
 
     // Add a line geometry (starts with 4 variables/4 DOF)

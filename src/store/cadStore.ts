@@ -28,7 +28,57 @@ export type CadAction =
   | { type: 'LOAD_DOCUMENT'; document: DocumentState };
 
 export const initialDocumentState: DocumentState = {
-  features: [],
+  features: [
+    {
+      id: 'datum_origin',
+      type: 'sketch',
+      name: 'Origin',
+      params: { visible: true, isDatum: true, geometries: [], constraints: [] },
+      dependencies: [],
+    },
+    {
+      id: 'datum_axis_x',
+      type: 'sketch',
+      name: 'X Axis',
+      params: { visible: true, isDatum: true, geometries: [], constraints: [] },
+      dependencies: [],
+    },
+    {
+      id: 'datum_axis_y',
+      type: 'sketch',
+      name: 'Y Axis',
+      params: { visible: true, isDatum: true, geometries: [], constraints: [] },
+      dependencies: [],
+    },
+    {
+      id: 'datum_axis_z',
+      type: 'sketch',
+      name: 'Z Axis',
+      params: { visible: true, isDatum: true, geometries: [], constraints: [] },
+      dependencies: [],
+    },
+    {
+      id: 'datum_plane_xy',
+      type: 'sketch',
+      name: 'XY Plane',
+      params: { visible: true, isDatum: true, geometries: [], constraints: [] },
+      dependencies: [],
+    },
+    {
+      id: 'datum_plane_yz',
+      type: 'sketch',
+      name: 'YZ Plane',
+      params: { visible: true, isDatum: true, geometries: [], constraints: [] },
+      dependencies: [],
+    },
+    {
+      id: 'datum_plane_zx',
+      type: 'sketch',
+      name: 'ZX Plane',
+      params: { visible: true, isDatum: true, geometries: [], constraints: [] },
+      dependencies: [],
+    },
+  ],
   activeFeatureId: null,
   activeSketchId: null,
 };

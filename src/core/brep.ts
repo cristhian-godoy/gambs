@@ -1805,6 +1805,7 @@ export function buildSolidFromFeatures(features: Feature[]): BrepShape {
   const shapesMap = new Map<string, BrepShape>();
 
   for (const f of features) {
+    if (f.params.isDatum === true) continue;
     if (f.type === 'sketch') {
       const geoms = (f.params.geometries as SketchGeometry[]) || [];
       sketchesMap.set(f.id, geoms);

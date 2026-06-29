@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, FolderTree, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Eye, EyeOff, FolderTree, Trash2 } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import { useCad } from '../store/CadContext.tsx';
@@ -1101,23 +1101,51 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                           </span>
                         )}
                     </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteFeature(feature.id);
-                      }}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: 'var(--cad-color-brand-danger)',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                      }}
-                      title="Delete Feature"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    {feature.params.isDatum === true ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const isVisible = feature.params.visible !== false;
+                          updateFeature(feature.id, { visible: !isVisible });
+                        }}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color:
+                            feature.params.visible !== false
+                              ? 'var(--cad-color-brand-main)'
+                              : 'var(--cad-color-text-muted)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                        title={feature.params.visible !== false ? 'Hide Datum' : 'Show Datum'}
+                      >
+                        {feature.params.visible !== false ? (
+                          <Eye size={14} />
+                        ) : (
+                          <EyeOff size={14} />
+                        )}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteFeature(feature.id);
+                        }}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--cad-color-brand-danger)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                        title="Delete Feature"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </div>
                 );
               })

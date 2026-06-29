@@ -37,7 +37,13 @@ vi.mock('three', () => {
     BoxGeometry: class {
       dispose = vi.fn();
     },
+    SphereGeometry: class {
+      dispose = vi.fn();
+    },
     MeshStandardMaterial: class {
+      dispose = vi.fn();
+    },
+    MeshBasicMaterial: class {
       dispose = vi.fn();
     },
     Mesh: class {
@@ -50,6 +56,22 @@ vi.mock('three', () => {
       dispose = vi.fn();
     },
     LineSegments: class {},
+    Line: class {},
+    Vector3: class {
+      x = 0;
+      y = 0;
+      z = 0;
+      constructor(x = 0, y = 0, z = 0) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+      }
+    },
+    BufferGeometry: class {
+      dispose = vi.fn();
+      setFromPoints = vi.fn().mockReturnThis();
+      setAttribute = vi.fn();
+    },
     Color: class {},
   };
 });

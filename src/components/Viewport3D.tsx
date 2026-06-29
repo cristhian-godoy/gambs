@@ -179,13 +179,70 @@ export default function Viewport3D(): ReactNode {
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
 
-    // 3. Grid and Axes
-    const gridHelper = new THREE.GridHelper(200, 50, '#334155', '#1e293b');
-    gridHelper.rotation.x = Math.PI / 2; // Lie grid on XY plane
-    scene.add(gridHelper);
+    // 3. Dynamic Datum Features Rendering
+    const datumGeometries: (THREE.BufferGeometry | THREE.Material)[] = [];
 
-    const axesHelper = new THREE.AxesHelper(50);
-    scene.add(axesHelper);
+    const originFeat = features.find((f) => f.id === 'datum_origin');
+    if (originFeat && originFeat.params.visible !== false) {
+      const originGeom = new THREE.SphereGeometry(0.8, 16, 16);
+      const originMat = new THREE.MeshBasicMaterial({ color: '#f8fafc' });
+      datumGeometries.push(originGeom, originMat);
+      const originMesh = new THREE.Mesh(originGeom, originMat);
+      scene.add(originMesh);
+    }
+
+    const axisXFeat = features.find((f) => f.id === 'datum_axis_x');
+    if (axisXFeat && axisXFeat.params.visible !== false) {
+      const pointsX = [new THREE.Vector3(-100, 0, 0), new THREE.Vector3(100, 0, 0)];
+      const geomX = new THREE.BufferGeometry().setFromPoints(pointsX);
+      const matX = new THREE.LineBasicMaterial({ color: '#ef4444' }); // Red
+      datumGeometries.push(geomX, matX);
+      const lineX = new THREE.Line(geomX, matX);
+      scene.add(lineX);
+    }
+
+    const axisYFeat = features.find((f) => f.id === 'datum_axis_y');
+    if (axisYFeat && axisYFeat.params.visible !== false) {
+      const pointsY = [new THREE.Vector3(0, -100, 0), new THREE.Vector3(0, 100, 0)];
+      const geomY = new THREE.BufferGeometry().setFromPoints(pointsY);
+      const matY = new THREE.LineBasicMaterial({ color: '#22c55e' }); // Green
+      datumGeometries.push(geomY, matY);
+      const lineY = new THREE.Line(geomY, matY);
+      scene.add(lineY);
+    }
+
+    const axisZFeat = features.find((f) => f.id === 'datum_axis_z');
+    if (axisZFeat && axisZFeat.params.visible !== false) {
+      const pointsZ = [new THREE.Vector3(0, 0, -100), new THREE.Vector3(0, 0, 100)];
+      const geomZ = new THREE.BufferGeometry().setFromPoints(pointsZ);
+      const matZ = new THREE.LineBasicMaterial({ color: '#3b82f6' }); // Blue
+      datumGeometries.push(geomZ, matZ);
+      const lineZ = new THREE.Line(geomZ, matZ);
+      scene.add(lineZ);
+    }
+
+    const planeXYFeat = features.find((f) => f.id === 'datum_plane_xy');
+    if (planeXYFeat && planeXYFeat.params.visible !== false) {
+      const xyGrid = new THREE.GridHelper(100, 20, '#ef4444', '#334155');
+      xyGrid.rotation.x = Math.PI / 2;
+      scene.add(xyGrid);
+      datumGeometries.push(xyGrid.geometry, xyGrid.material as THREE.Material);
+    }
+
+    const planeYZFeat = features.find((f) => f.id === 'datum_plane_yz');
+    if (planeYZFeat && planeYZFeat.params.visible !== false) {
+      const yzGrid = new THREE.GridHelper(100, 20, '#22c55e', '#334155');
+      yzGrid.rotation.z = Math.PI / 2;
+      scene.add(yzGrid);
+      datumGeometries.push(yzGrid.geometry, yzGrid.material as THREE.Material);
+    }
+
+    const planeZXFeat = features.find((f) => f.id === 'datum_plane_zx');
+    if (planeZXFeat && planeZXFeat.params.visible !== false) {
+      const zxGrid = new THREE.GridHelper(100, 20, '#3b82f6', '#334155');
+      scene.add(zxGrid);
+      datumGeometries.push(zxGrid.geometry, zxGrid.material as THREE.Material);
+    }
 
     // 4. Lights
     const hemiLight = new THREE.HemisphereLight('#ffffff', '#444444', 1.5);
@@ -240,21 +297,7 @@ export default function Viewport3D(): ReactNode {
         scene.add(line);
       }
     } else {
-      // No 3D solids created yet -> Render simple translucent grid box
-      geometry = new THREE.BoxGeometry(20, 20, 20);
-      material = new THREE.MeshStandardMaterial({
-        color: '#475569',
-        roughness: 0.5,
-        transparent: true,
-        opacity: 0.2,
-      });
-      const mesh = new THREE.Mesh(geometry, material);
-      scene.add(mesh);
-
-      wireframeGeom = new THREE.EdgesGeometry(geometry);
-      wireframeMat = new THREE.LineBasicMaterial({ color: '#475569', linewidth: 1.0 });
-      const wireframe = new THREE.LineSegments(wireframeGeom, wireframeMat);
-      mesh.add(wireframe);
+      // Empty canvas by default
     }
 
     // 6. Animation loop
@@ -336,6 +379,7 @@ export default function Viewport3D(): ReactNode {
       material?.dispose();
       wireframeGeom?.dispose();
       wireframeMat?.dispose();
+      datumGeometries.forEach((d) => d?.dispose?.());
     };
   }, [features]);
 

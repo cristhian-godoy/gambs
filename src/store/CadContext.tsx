@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, type ReactNode, useContext, useReducer, useState } from 'react';
 
+import { SketchConstraint } from '../core/solver.ts';
 import { cadReducer, initialHistoryState } from './cadStore.ts';
 import { DocumentState, Feature, FeatureType, SketchGeometry } from './types.ts';
 
@@ -8,6 +9,14 @@ import { DocumentState, Feature, FeatureType, SketchGeometry } from './types.ts'
  * Types of active canvas interaction tools.
  */
 export type ToolType = 'select' | 'line' | 'circle' | 'rect';
+
+/**
+ * Represents a selected sketch element (geometry or specific vertex).
+ */
+export interface SelectedElement {
+  geomId: string;
+  vertexType?: 'start' | 'end' | 'center' | 'corner1' | 'corner2';
+}
 
 /**
  * Context properties and callbacks for CAD application state.
@@ -18,8 +27,8 @@ interface CadContextType {
   canRedo: boolean;
   activeTool: ToolType;
   setActiveTool: (tool: ToolType) => void;
-  selectedGeomIds: string[];
-  setSelectedGeomIds: (ids: string[]) => void;
+  selectedElements: SelectedElement[];
+  setSelectedElements: (elements: SelectedElement[]) => void;
   addFeature: (
     type: FeatureType,
     name: string,
@@ -34,6 +43,9 @@ interface CadContextType {
   addSketchGeometry: (geometry: SketchGeometry) => void;
   deleteSketchGeometry: (geometryId: string) => void;
   toggleConstructionGeometries: (geomIds: string[]) => void;
+  addSketchConstraint: (c: Omit<SketchConstraint, 'id'>) => void;
+  updateSketchConstraint: (constraintId: string, value: number) => void;
+  deleteSketchConstraint: (constraintId: string) => void;
   undo: () => void;
   redo: () => void;
 }
@@ -48,7 +60,7 @@ const CadContext = createContext<CadContextType | undefined>(undefined);
 export function CadProvider({ children }: { children: ReactNode }): ReactNode {
   const [history, dispatch] = useReducer(cadReducer, initialHistoryState);
   const [activeTool, setActiveTool] = useState<ToolType>('select');
-  const [selectedGeomIds, setSelectedGeomIds] = useState<string[]>([]);
+  const [selectedElements, setSelectedElements] = useState<SelectedElement[]>([]);
 
   const addFeature = (
     type: FeatureType,
@@ -115,6 +127,68 @@ export function CadProvider({ children }: { children: ReactNode }): ReactNode {
     });
   };
 
+  const addSketchConstraint = (c: Omit<SketchConstraint, 'id'>) => {
+    const activeSketchId = history.present.activeSketchId;
+    if (!activeSketchId) return;
+
+    const activeSketch = history.present.features.find((f) => f.id === activeSketchId);
+    if (!activeSketch) return;
+
+    const currentConstraints = (activeSketch.params.constraints as SketchConstraint[]) || [];
+    const id = `c_${Date.now()}`;
+    const newConstraint: SketchConstraint = { ...c, id };
+
+    dispatch({
+      type: 'UPDATE_FEATURE',
+      id: activeSketchId,
+      params: {
+        ...activeSketch.params,
+        constraints: [...currentConstraints, newConstraint],
+      },
+    });
+  };
+
+  const updateSketchConstraint = (constraintId: string, value: number) => {
+    const activeSketchId = history.present.activeSketchId;
+    if (!activeSketchId) return;
+
+    const activeSketch = history.present.features.find((f) => f.id === activeSketchId);
+    if (!activeSketch) return;
+
+    const currentConstraints = (activeSketch.params.constraints as SketchConstraint[]) || [];
+    const nextConstraints = currentConstraints.map((c) => {
+      if (c.id === constraintId) {
+        return { ...c, value };
+      }
+      return c;
+    });
+
+    dispatch({
+      type: 'UPDATE_FEATURE',
+      id: activeSketchId,
+      params: { ...activeSketch.params, constraints: nextConstraints },
+    });
+  };
+
+  const deleteSketchConstraint = (constraintId: string) => {
+    const activeSketchId = history.present.activeSketchId;
+    if (!activeSketchId) return;
+
+    const activeSketch = history.present.features.find((f) => f.id === activeSketchId);
+    if (!activeSketch) return;
+
+    const currentConstraints = (activeSketch.params.constraints as SketchConstraint[]) || [];
+
+    dispatch({
+      type: 'UPDATE_FEATURE',
+      id: activeSketchId,
+      params: {
+        ...activeSketch.params,
+        constraints: currentConstraints.filter((c) => c.id !== constraintId),
+      },
+    });
+  };
+
   const undo = () => dispatch({ type: 'UNDO' });
   const redo = () => dispatch({ type: 'REDO' });
 
@@ -124,8 +198,8 @@ export function CadProvider({ children }: { children: ReactNode }): ReactNode {
     canRedo: history.future.length > 0,
     activeTool,
     setActiveTool,
-    selectedGeomIds,
-    setSelectedGeomIds,
+    selectedElements,
+    setSelectedElements,
     addFeature,
     updateFeature,
     deleteFeature,
@@ -135,6 +209,9 @@ export function CadProvider({ children }: { children: ReactNode }): ReactNode {
     addSketchGeometry,
     deleteSketchGeometry,
     toggleConstructionGeometries,
+    addSketchConstraint,
+    updateSketchConstraint,
+    deleteSketchConstraint,
     undo,
     redo,
   };

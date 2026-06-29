@@ -9,6 +9,7 @@ import {
   hitTestLine,
   hitTestRect,
 } from '../core/geometry.ts';
+import { SketchConstraint } from '../core/solver.ts';
 import { useCad } from '../store/CadContext.tsx';
 import { SketchGeometry } from '../store/types.ts';
 
@@ -18,9 +19,16 @@ interface Vertex {
   point: { x: number; y: number };
 }
 
+interface DimensionTextInfo {
+  id: string;
+  x: number;
+  y: number;
+  value: number;
+}
+
 /**
  * Performant 2D sketch canvas with pan, zoom, drawing, selection, and dragging.
- * Supports reference datums and construction geometry.
+ * Supports reference datums, construction geometry, and visual constraint badges/dimensions.
  * @returns The rendered SketchCanvas component.
  */
 export default function SketchCanvas(): ReactNode {
@@ -36,8 +44,9 @@ export default function SketchCanvas(): ReactNode {
     enterSketchEdit,
     addSketchGeometry,
     updateFeature,
-    selectedGeomIds,
-    setSelectedGeomIds,
+    selectedElements,
+    setSelectedElements,
+    updateSketchConstraint,
   } = useCad();
   const { activeSketchId, features } = documentState;
 
@@ -70,6 +79,9 @@ export default function SketchCanvas(): ReactNode {
   // Local mutable geometries during dragging to avoid state lag
   const localGeometriesRef = useRef<SketchGeometry[]>([]);
 
+  // Refs for tracking interactive dimension text positions
+  const dimensionTextsRef = useRef<DimensionTextInfo[]>([]);
+
   // Expose viewport coordinates to UI
   const [coords, setCoords] = useState({ x: 0, y: 0 });
 
@@ -78,18 +90,18 @@ export default function SketchCanvas(): ReactNode {
     activeTool,
     activeSketchId,
     features,
-    selectedGeomIds,
+    selectedElements,
   });
 
   useEffect(() => {
-    stateRef.current = { activeTool, activeSketchId, features, selectedGeomIds };
+    stateRef.current = { activeTool, activeSketchId, features, selectedElements };
     if (!isDraggingEntityRef.current && activeSketchId) {
       const activeSketch = features.find((f) => f.id === activeSketchId);
       if (activeSketch) {
         localGeometriesRef.current = (activeSketch.params.geometries as SketchGeometry[]) || [];
       }
     }
-  }, [activeTool, activeSketchId, features, selectedGeomIds]);
+  }, [activeTool, activeSketchId, features, selectedElements]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -105,10 +117,40 @@ export default function SketchCanvas(): ReactNode {
       return { x, y };
     };
 
+    // Helper to resolve point coordinates from constraint targets
+    const resolvePointCoords = (
+      target: {
+        geomId: string;
+        vertexType?: 'start' | 'end' | 'center' | 'corner1' | 'corner2';
+      },
+      geomsList: SketchGeometry[],
+    ) => {
+      const { geomId, vertexType } = target;
+      if (geomId === 'datum_origin') return { x: 0, y: 0 };
+      const geom = geomsList.find((g) => g.id === geomId);
+      if (!geom) return { x: 0, y: 0 };
+      if (geom.type === 'line') {
+        return vertexType === 'start' ? geom.start : geom.end;
+      }
+      if (geom.type === 'circle') {
+        return geom.center;
+      }
+      if (geom.type === 'rect') {
+        if (vertexType === 'start') return geom.start;
+        if (vertexType === 'end') return geom.end;
+        if (vertexType === 'corner1') return { x: geom.end.x, y: geom.start.y };
+        return { x: geom.start.x, y: geom.end.y };
+      }
+      return { x: 0, y: 0 };
+    };
+
     const drawGrid = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
       const { zoom, offsetX, offsetY } = transformRef.current;
-      const { activeSketchId: currentSketchId, selectedGeomIds: currentSelected } =
-        stateRef.current;
+      const {
+        activeSketchId: currentSketchId,
+        selectedElements: currentSelected,
+        features: currentFeatures,
+      } = stateRef.current;
 
       ctx.clearRect(0, 0, width, height);
 
@@ -158,7 +200,7 @@ export default function SketchCanvas(): ReactNode {
 
       // Draw Major Axes (with Hover & Selection highlights)
       // X axis (Red)
-      const isXSelected = currentSelected.includes('datum_axis_x');
+      const isXSelected = currentSelected.some((el) => el.geomId === 'datum_axis_x');
       const isXHovered = hoveredGeomIdRef.current === 'datum_axis_x';
       if (isXSelected) {
         ctx.strokeStyle = 'var(--cad-color-brand-secondary)';
@@ -176,7 +218,7 @@ export default function SketchCanvas(): ReactNode {
       ctx.stroke();
 
       // Y axis (Green)
-      const isYSelected = currentSelected.includes('datum_axis_y');
+      const isYSelected = currentSelected.some((el) => el.geomId === 'datum_axis_y');
       const isYHovered = hoveredGeomIdRef.current === 'datum_axis_y';
       if (isYSelected) {
         ctx.strokeStyle = 'var(--cad-color-brand-secondary)';
@@ -193,11 +235,16 @@ export default function SketchCanvas(): ReactNode {
       ctx.lineTo(0, topWorld);
       ctx.stroke();
 
-      // Draw active sketch geometries
+      // Clear interactive text locations
+      dimensionTextsRef.current = [];
+
+      // Draw active sketch geometries & constraints
       if (currentSketchId) {
         const geometries = localGeometriesRef.current;
         for (const geom of geometries) {
-          const isSelected = currentSelected.includes(geom.id);
+          const isSelected = currentSelected.some(
+            (el) => el.geomId === geom.id && el.vertexType === undefined,
+          );
           const isHovered = hoveredGeomIdRef.current === geom.id;
 
           // Set drawing styles based on whether it is a construction line or standard geometry
@@ -260,13 +307,17 @@ export default function SketchCanvas(): ReactNode {
               hoveredVertexRef.current.geomId === vert.geomId &&
               hoveredVertexRef.current.type === vert.type;
 
+            const isVertSelected = currentSelected.some(
+              (el) => el.geomId === vert.geomId && el.vertexType === vert.type,
+            );
+
             if (isVertHovered) {
               ctx.fillStyle = 'hsl(45deg 100% 50%)';
               ctx.beginPath();
               ctx.arc(vert.point.x, vert.point.y, 6 / zoom, 0, Math.PI * 2);
               ctx.fill();
             } else {
-              ctx.fillStyle = isSelected
+              ctx.fillStyle = isVertSelected
                 ? 'var(--cad-color-brand-secondary)'
                 : geom.isConstruction
                   ? 'rgba(255, 255, 255, 0.4)'
@@ -277,22 +328,145 @@ export default function SketchCanvas(): ReactNode {
             }
           }
         }
-      }
 
-      // Draw drawing preview
-      if (previewRef.current) {
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.lineWidth = 1.5 / zoom;
-        ctx.setLineDash([5 / zoom, 5 / zoom]);
-        const geom = previewRef.current;
-        if (geom.type === 'line') drawLine(ctx, geom);
-        else if (geom.type === 'circle') drawCircle(ctx, geom);
-        else if (geom.type === 'rect') drawRect(ctx, geom);
-        ctx.setLineDash([]);
+        // Draw constraint badges and dimension lines
+        const activeSketch = currentFeatures.find((f) => f.id === currentSketchId);
+        const constraints = (activeSketch?.params.constraints as SketchConstraint[]) || [];
+
+        // Helper to draw clean text right-side-up on transformed canvas
+        const drawTextBadge = (
+          text: string,
+          x: number,
+          y: number,
+          color = '#e2e8f0',
+          size = 10,
+        ) => {
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.scale(1 / zoom, -1 / zoom); // counteract inverted Y scaling
+
+          ctx.fillStyle = 'rgba(20, 20, 20, 0.85)';
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+          ctx.lineWidth = 1;
+
+          const textWidth = ctx.measureText(text).width;
+          ctx.fillRect(-textWidth / 2 - 4, -size / 2 - 3, textWidth + 8, size + 6);
+          ctx.strokeRect(-textWidth / 2 - 4, -size / 2 - 3, textWidth + 8, size + 6);
+
+          ctx.fillStyle = color;
+          ctx.font = `bold ${size}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(text, 0, 0);
+          ctx.restore();
+        };
+
+        for (const c of constraints) {
+          if (c.type === 'horizontal') {
+            const line = geometries.find((g) => g.id === c.targets[0].geomId);
+            if (line && line.type === 'line') {
+              const mx = (line.start.x + line.end.x) / 2;
+              const my = (line.start.y + line.end.y) / 2;
+              drawTextBadge('H', mx, my + 15 / zoom, '#60a5fa');
+            }
+          } else if (c.type === 'vertical') {
+            const line = geometries.find((g) => g.id === c.targets[0].geomId);
+            if (line && line.type === 'line') {
+              const mx = (line.start.x + line.end.x) / 2;
+              const my = (line.start.y + line.end.y) / 2;
+              drawTextBadge('V', mx + 15 / zoom, my, '#34d399');
+            }
+          } else if (c.type === 'distance') {
+            const p1 = resolvePointCoords(c.targets[0], geometries);
+            const p2 = resolvePointCoords(c.targets[1], geometries);
+
+            const mx = (p1.x + p2.x) / 2;
+            const my = (p1.y + p2.y) / 2;
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            const len = Math.sqrt(dx * dx + dy * dy);
+
+            if (len > 1e-4) {
+              const nx = -dy / len;
+              const ny = dx / len;
+              const offsetDist = 20 / zoom; // offset distance from shape
+
+              const ox = mx + nx * offsetDist;
+              const oy = my + ny * offsetDist;
+
+              // Draw thin dimension guide lines
+              ctx.strokeStyle = '#f59e0b'; // amber color for dimensions
+              ctx.lineWidth = 1 / zoom;
+              ctx.setLineDash([3 / zoom, 3 / zoom]);
+
+              ctx.beginPath();
+              ctx.moveTo(p1.x, p1.y);
+              ctx.lineTo(p1.x + nx * offsetDist, p1.y + ny * offsetDist);
+              ctx.moveTo(p2.x, p2.y);
+              ctx.lineTo(p2.x + nx * offsetDist, p2.y + ny * offsetDist);
+              ctx.stroke();
+
+              ctx.setLineDash([]);
+              ctx.beginPath();
+              ctx.moveTo(p1.x + nx * offsetDist, p1.y + ny * offsetDist);
+              ctx.lineTo(p2.x + nx * offsetDist, p2.y + ny * offsetDist);
+              ctx.stroke();
+
+              // Draw distance value badge
+              const val = c.value !== undefined ? c.value : len;
+              drawTextBadge(`${val.toFixed(1)} mm`, ox, oy, '#f59e0b', 10);
+
+              // Record coordinates for double click editing
+              dimensionTextsRef.current.push({ id: c.id, x: ox, y: oy, value: val });
+            }
+          } else if (c.type === 'radius') {
+            const circle = geometries.find((g) => g.id === c.targets[0].geomId);
+            if (circle && circle.type === 'circle') {
+              const theta = Math.PI / 4; // 45 degrees leader line direction
+              const ox = circle.center.x + (circle.radius + 15 / zoom) * Math.cos(theta);
+              const oy = circle.center.y + (circle.radius + 15 / zoom) * Math.sin(theta);
+
+              ctx.strokeStyle = '#f59e0b';
+              ctx.lineWidth = 1 / zoom;
+              ctx.beginPath();
+              ctx.moveTo(
+                circle.center.x + circle.radius * Math.cos(theta),
+                circle.center.y + circle.radius * Math.sin(theta),
+              );
+              ctx.lineTo(ox, oy);
+              ctx.stroke();
+
+              const val = c.value !== undefined ? c.value : circle.radius;
+              drawTextBadge(`R ${val.toFixed(1)}`, ox, oy, '#f59e0b', 10);
+
+              dimensionTextsRef.current.push({ id: c.id, x: ox, y: oy, value: val });
+            }
+          } else if (c.type === 'angle') {
+            const g1 = geometries.find((g) => g.id === c.targets[0].geomId);
+            const g2 = geometries.find((g) => g.id === c.targets[1].geomId);
+            if (g1 && g2 && g1.type === 'line' && g2.type === 'line') {
+              // Draw badge in the average midpoint area
+              const mx1 = (g1.start.x + g1.end.x) / 2;
+              const my1 = (g1.start.y + g1.end.y) / 2;
+              const mx2 = (g2.start.x + g2.end.x) / 2;
+              const my2 = (g2.start.y + g2.end.y) / 2;
+
+              const ax = (mx1 + mx2) / 2;
+              const ay = (my1 + my2) / 2;
+
+              const valRad = c.value !== undefined ? c.value : Math.PI / 2;
+              const valDeg = (valRad * 180) / Math.PI;
+
+              drawTextBadge(`${valDeg.toFixed(1)}°`, ax, ay, '#f59e0b', 10);
+
+              dimensionTextsRef.current.push({ id: c.id, x: ax, y: ay, value: valDeg });
+            }
+          }
+        }
       }
 
       // Draw Origin point (with Hover & Selection highlights)
-      const isOriginSelected = currentSelected.includes('datum_origin');
+      const isOriginSelected = currentSelected.some((el) => el.geomId === 'datum_origin');
       const isOriginHovered =
         hoveredVertexRef.current && hoveredVertexRef.current.geomId === 'datum_origin';
 
@@ -346,7 +520,7 @@ export default function SketchCanvas(): ReactNode {
       const {
         activeTool: currentTool,
         activeSketchId: currentSketchId,
-        selectedGeomIds: currentSelected,
+        selectedElements: currentSelected,
       } = stateRef.current;
 
       // Pan on middle mouse click or shift + left click
@@ -382,27 +556,31 @@ export default function SketchCanvas(): ReactNode {
             }
           }
 
-          // Handle Selection update
-          const targetId = hoveredVertexRef.current
-            ? hoveredVertexRef.current.geomId
-            : hoveredGeomIdRef.current!;
+          // Compute selected element object
+          const targetElement = hoveredVertexRef.current
+            ? { geomId: hoveredVertexRef.current.geomId, vertexType: hoveredVertexRef.current.type }
+            : { geomId: hoveredGeomIdRef.current! };
+
+          // Checks equality
+          const isEquals = (el1: typeof targetElement, el2: typeof targetElement) =>
+            el1.geomId === el2.geomId && el1.vertexType === el2.vertexType;
 
           if (e.ctrlKey || e.shiftKey) {
-            if (currentSelected.includes(targetId)) {
-              setSelectedGeomIds(currentSelected.filter((id) => id !== targetId));
+            if (currentSelected.some((el) => isEquals(el, targetElement))) {
+              setSelectedElements(currentSelected.filter((el) => !isEquals(el, targetElement)));
             } else {
-              setSelectedGeomIds([...currentSelected, targetId]);
+              setSelectedElements([...currentSelected, targetElement]);
             }
           } else {
-            if (!currentSelected.includes(targetId)) {
-              setSelectedGeomIds([targetId]);
+            if (!currentSelected.some((el) => isEquals(el, targetElement))) {
+              setSelectedElements([targetElement]);
             }
           }
           e.preventDefault();
         } else {
           // click empty space -> clear selection
           if (!e.ctrlKey && !e.shiftKey) {
-            setSelectedGeomIds([]);
+            setSelectedElements([]);
           }
         }
         return;
@@ -738,12 +916,36 @@ export default function SketchCanvas(): ReactNode {
       e.preventDefault();
     };
 
+    // Double click to edit dimension constraint value
+    const handleDoubleClick = (e: MouseEvent) => {
+      const worldPos = screenToWorld(e.clientX, e.clientY);
+      const { zoom } = transformRef.current;
+
+      // Find if we clicked near any dimension text
+      const clickedDim = dimensionTextsRef.current.find((dim) => {
+        const dist = distance(worldPos, { x: dim.x, y: dim.y });
+        return dist <= 20 / zoom; // 20px hit radius
+      });
+
+      if (clickedDim) {
+        const input = prompt('Edit dimension value (mm):', clickedDim.value.toString());
+        if (input !== null) {
+          const val = parseFloat(input);
+          if (!isNaN(val)) {
+            updateSketchConstraint(clickedDim.id, val);
+          }
+        }
+        e.preventDefault();
+      }
+    };
+
     canvas.addEventListener('mousedown', handleMouseDown);
     canvas.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
     canvas.addEventListener('wheel', handleWheel);
     window.addEventListener('keydown', handleKeyDown);
     canvas.addEventListener('contextmenu', handleContextMenu);
+    canvas.addEventListener('dblclick', handleDoubleClick);
 
     return () => {
       resizeObserver.disconnect();
@@ -753,13 +955,15 @@ export default function SketchCanvas(): ReactNode {
       canvas.removeEventListener('wheel', handleWheel);
       window.removeEventListener('keydown', handleKeyDown);
       canvas.removeEventListener('contextmenu', handleContextMenu);
+      canvas.removeEventListener('dblclick', handleDoubleClick);
     };
   }, [
     addFeature,
     enterSketchEdit,
     addSketchGeometry,
     updateFeature,
-    setSelectedGeomIds,
+    setSelectedElements,
+    updateSketchConstraint,
     setActiveTool,
   ]);
 

@@ -65,9 +65,10 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
     isSelectingSupportPlane,
     setIsSelectingSupportPlane,
     setActiveBody,
+    setActivePart,
     showContextMenu,
   } = useCad();
-  const { features, activeFeatureId, activeBodyId } = documentState;
+  const { features, activeFeatureId, activeBodyId, activePartId } = documentState;
 
   const [width, setWidth] = useState(320);
   const [dragging, setDragging] = useState(false);
@@ -1366,6 +1367,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
     const isBody = feature.type === 'body';
     const isPart = feature.type === 'part';
     const isActiveBody = activeBodyId === feature.id;
+    const isActivePart = isPart && activePartId === feature.id;
 
     const children = features.filter((f) => f.parentId === feature.id && f.params.isDatum !== true);
     const localOriginPoints = features.filter(
@@ -1385,7 +1387,8 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
           onContextMenu={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            showContextMenu(e.clientX, e.clientY, [
+
+            const menuOptions = [
               {
                 label: 'Rename',
                 action: () => {
@@ -1395,6 +1398,28 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                   }
                 },
               },
+            ];
+
+            if (isPart) {
+              const isActivePart = activePartId === feature.id;
+              menuOptions.push({
+                label: isActivePart ? 'Deactivate Part' : 'Activate Part',
+                action: () => {
+                  setActivePart(isActivePart ? null : feature.id);
+                },
+              });
+            }
+
+            if (isBody) {
+              menuOptions.push({
+                label: isActiveBody ? 'Deactivate Body' : 'Activate Body',
+                action: () => {
+                  setActiveBody(isActiveBody ? null : feature.id);
+                },
+              });
+            }
+
+            menuOptions.push(
               {
                 label: 'Move To...',
                 action: () => {
@@ -1437,7 +1462,9 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                   deleteFeature(feature.id);
                 },
               },
-            ]);
+            );
+
+            showContextMenu(e.clientX, e.clientY, menuOptions);
           }}
           style={{
             display: 'flex',
@@ -1446,13 +1473,13 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
             padding: '4px 8px',
             background: isActive
               ? 'var(--cad-glass-bg-hover)'
-              : isActiveBody
+              : isActiveBody || isActivePart
                 ? 'rgba(34, 197, 94, 0.1)'
                 : 'var(--cad-color-surface-tertiary)',
             border: '1px solid',
             borderColor: isActive
               ? 'var(--cad-color-brand-main)'
-              : isActiveBody
+              : isActiveBody || isActivePart
                 ? 'var(--cad-color-brand-success, #22c55e)'
                 : 'var(--cad-glass-border-base)',
             borderRadius: 'var(--cad-radius-sm)',
@@ -1462,7 +1489,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            {(isBody || isPart) && (
+            {(isBody || isPart || feature.type === 'folder') && (
               <div
                 onClick={(e) => toggleNode(feature.id, e)}
                 style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
@@ -1471,7 +1498,14 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
               </div>
             )}
             {isPart ? (
-              <Layers size={12} style={{ color: 'var(--cad-color-brand-main)' }} />
+              <Layers
+                size={12}
+                style={{
+                  color: isActivePart
+                    ? 'var(--cad-color-brand-success, #22c55e)'
+                    : 'var(--cad-color-brand-main)',
+                }}
+              />
             ) : isBody ? (
               <Box
                 size={12}
@@ -1481,20 +1515,22 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                     : 'var(--cad-color-text-secondary)',
                 }}
               />
+            ) : feature.type === 'folder' ? (
+              <FolderTree size={12} style={{ color: 'var(--cad-color-brand-main)' }} />
             ) : null}
             <span
               style={{
                 fontSize: '0.8rem',
-                fontWeight: isActive || isActiveBody ? 600 : 400,
+                fontWeight: isActive || isActiveBody || isActivePart ? 600 : 400,
                 color: isActive
                   ? 'var(--cad-color-text-primary)'
-                  : isActiveBody
+                  : isActiveBody || isActivePart
                     ? 'var(--cad-color-brand-success, #22c55e)'
                     : 'var(--cad-color-text-secondary)',
               }}
             >
               {feature.name}
-              {isActiveBody && (
+              {(isActiveBody || isActivePart) && (
                 <span
                   style={{
                     fontSize: '0.65rem',
@@ -1586,7 +1622,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
         </div>
 
         {/* Collapsible Children */}
-        {(isBody || isPart) && isExpanded && (
+        {(isBody || isPart || feature.type === 'folder') && isExpanded && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
             {hasLocalOrigin && (
               <LocalOriginFolder

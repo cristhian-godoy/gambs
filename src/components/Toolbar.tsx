@@ -499,99 +499,103 @@ export default function Toolbar({ onOpenSettings }: ToolbarProps): ReactNode {
           </button>
         </div>
 
-        <div className="draw-menu-container" style={{ position: 'relative' }}>
-          <button
-            className={`toolbar-btn ${isDrawActive ? 'active' : ''}`}
-            onClick={() => setDrawMenuOpen(!drawMenuOpen)}
-            title="Draw Menu"
-          >
-            {currentDrawTool.icon}
-            {currentDrawTool.text}
-          </button>
-
-          {drawMenuOpen && (
-            <div
-              className="dropdown-menu"
-              style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                backgroundColor: 'var(--cad-color-surface-elevated)',
-                border: '1px solid var(--cad-glass-border-base)',
-                borderRadius: 'var(--cad-radius-md)',
-                boxShadow: 'var(--cad-shadow-glow)',
-                zIndex: 100,
-                display: 'flex',
-                flexDirection: 'column',
-                minWidth: '160px',
-                padding: '4px 0',
-                marginTop: '4px',
-              }}
-            >
+        {activeSketchId && (
+          <>
+            <div className="draw-menu-container" style={{ position: 'relative' }}>
               <button
-                className={`dropdown-item ${activeTool === 'line' ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveTool(activeTool === 'line' ? 'select' : 'line');
-                  setDrawMenuOpen(false);
-                }}
+                className={`toolbar-btn ${isDrawActive ? 'active' : ''}`}
+                onClick={() => setDrawMenuOpen(!drawMenuOpen)}
+                title="Draw Menu"
               >
-                <Slash size={14} /> Line
+                {currentDrawTool.icon}
+                {currentDrawTool.text}
               </button>
 
-              <button
-                className={`dropdown-item ${activeTool === 'circle' ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveTool(activeTool === 'circle' ? 'select' : 'circle');
-                  setDrawMenuOpen(false);
-                }}
-              >
-                <Circle size={14} /> Circle
-              </button>
+              {drawMenuOpen && (
+                <div
+                  className="dropdown-menu"
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    backgroundColor: 'var(--cad-color-surface-elevated)',
+                    border: '1px solid var(--cad-glass-border-base)',
+                    borderRadius: 'var(--cad-radius-md)',
+                    boxShadow: 'var(--cad-shadow-glow)',
+                    zIndex: 100,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minWidth: '160px',
+                    padding: '4px 0',
+                    marginTop: '4px',
+                  }}
+                >
+                  <button
+                    className={`dropdown-item ${activeTool === 'line' ? 'active' : ''}`}
+                    onClick={() => {
+                      setActiveTool(activeTool === 'line' ? 'select' : 'line');
+                      setDrawMenuOpen(false);
+                    }}
+                  >
+                    <Slash size={14} /> Line
+                  </button>
 
-              <button
-                className={`dropdown-item ${activeTool === 'rect' ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveTool(activeTool === 'rect' ? 'select' : 'rect');
-                  setDrawMenuOpen(false);
-                }}
-              >
-                <Square size={14} /> Rectangle
-              </button>
+                  <button
+                    className={`dropdown-item ${activeTool === 'circle' ? 'active' : ''}`}
+                    onClick={() => {
+                      setActiveTool(activeTool === 'circle' ? 'select' : 'circle');
+                      setDrawMenuOpen(false);
+                    }}
+                  >
+                    <Circle size={14} /> Circle
+                  </button>
 
-              <button
-                className={`dropdown-item ${activeTool === 'arc' ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveTool(activeTool === 'arc' ? 'select' : 'arc');
-                  setDrawMenuOpen(false);
-                }}
-              >
-                <Compass size={14} /> Arc
-              </button>
+                  <button
+                    className={`dropdown-item ${activeTool === 'rect' ? 'active' : ''}`}
+                    onClick={() => {
+                      setActiveTool(activeTool === 'rect' ? 'select' : 'rect');
+                      setDrawMenuOpen(false);
+                    }}
+                  >
+                    <Square size={14} /> Rectangle
+                  </button>
 
-              <button
-                className={`dropdown-item ${activeTool === 'triangle' ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveTool(activeTool === 'triangle' ? 'select' : 'triangle');
-                  setDrawMenuOpen(false);
-                }}
-              >
-                <Triangle size={14} /> Triangle
-              </button>
+                  <button
+                    className={`dropdown-item ${activeTool === 'arc' ? 'active' : ''}`}
+                    onClick={() => {
+                      setActiveTool(activeTool === 'arc' ? 'select' : 'arc');
+                      setDrawMenuOpen(false);
+                    }}
+                  >
+                    <Compass size={14} /> Arc
+                  </button>
 
-              <button
-                className={`dropdown-item ${activeTool === 'slot' ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveTool(activeTool === 'slot' ? 'select' : 'slot');
-                  setDrawMenuOpen(false);
-                }}
-              >
-                <ToggleLeft size={14} /> Slot
-              </button>
+                  <button
+                    className={`dropdown-item ${activeTool === 'triangle' ? 'active' : ''}`}
+                    onClick={() => {
+                      setActiveTool(activeTool === 'triangle' ? 'select' : 'triangle');
+                      setDrawMenuOpen(false);
+                    }}
+                  >
+                    <Triangle size={14} /> Triangle
+                  </button>
+
+                  <button
+                    className={`dropdown-item ${activeTool === 'slot' ? 'active' : ''}`}
+                    onClick={() => {
+                      setActiveTool(activeTool === 'slot' ? 'select' : 'slot');
+                      setDrawMenuOpen(false);
+                    }}
+                  >
+                    <ToggleLeft size={14} /> Slot
+                  </button>
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        <div className="toolbar-divider" />
+            <div className="toolbar-divider" />
+          </>
+        )}
 
         {/* Constraints Actions Group */}
         {activeSketchId && (

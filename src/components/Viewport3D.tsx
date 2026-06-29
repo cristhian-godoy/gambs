@@ -345,8 +345,8 @@ export default function Viewport3D(): ReactNode {
       scene.add(lineZ);
     }
 
-    const gridOffset = 4.0;
-    const actualGridSize = Math.max(1, settings.gridSize - 2 * gridOffset);
+    const gridOffset = 8.0;
+    const actualGridSize = Math.max(1, settings.gridSize - gridOffset);
     const actualGridDivisions = Math.max(
       1,
       Math.round(settings.gridDivisions * (actualGridSize / settings.gridSize)),
@@ -371,11 +371,7 @@ export default function Viewport3D(): ReactNode {
       scene.add(xyGrid);
 
       const label = createPlaneMeshLabel('XY', '#ef4444');
-      label.position.set(
-        settings.gridSize - gridOffset - 4.0,
-        settings.gridSize - gridOffset - 4.0,
-        0.01,
-      );
+      label.position.set(settings.gridSize - 4.0, settings.gridSize - 4.0, 0.01);
       scene.add(label);
 
       const mat = label.material as THREE.MeshBasicMaterial;
@@ -406,11 +402,7 @@ export default function Viewport3D(): ReactNode {
       scene.add(yzGrid);
 
       const label = createPlaneMeshLabel('YZ', '#22c55e');
-      label.position.set(
-        0.01,
-        settings.gridSize - gridOffset - 4.0,
-        settings.gridSize - gridOffset - 4.0,
-      );
+      label.position.set(0.01, settings.gridSize - 4.0, settings.gridSize - 4.0);
       label.rotation.y = Math.PI / 2;
       scene.add(label);
 
@@ -441,11 +433,7 @@ export default function Viewport3D(): ReactNode {
       scene.add(zxGrid);
 
       const label = createPlaneMeshLabel('ZX', '#3b82f6');
-      label.position.set(
-        settings.gridSize - gridOffset - 4.0,
-        0.01,
-        settings.gridSize - gridOffset - 4.0,
-      );
+      label.position.set(settings.gridSize - 4.0, 0.01, settings.gridSize - 4.0);
       label.rotation.x = Math.PI / 2;
       scene.add(label);
 

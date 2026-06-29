@@ -1,12 +1,85 @@
-/* Design System Tokens */
+/* Design System Tokens - Premium Dark / Glassmorphism CAD Theme */
+
 :root {
   color-scheme: dark;
+
+  /* CAD Standard Design Tokens */
+  --cad-color-brand-main: hsl(217deg 91% 60%); /* Electric Blue */
+  --cad-color-brand-hover: hsl(217deg 91% 68%);
+  --cad-color-brand-secondary: hsl(172deg 80% 45%); /* Teal */
+  --cad-color-brand-secondary-hover: hsl(172deg 80% 55%);
+  --cad-color-brand-danger: hsl(350deg 80% 55%); /* Coral Red */
+
+  /* Surfaces */
   --cad-color-surface-base: hsl(220deg 25% 7%);
+  --cad-color-surface-elevated: hsl(220deg 20% 12%);
+  --cad-color-surface-tertiary: hsl(220deg 15% 18%);
+
+  /* Text */
   --cad-color-text-primary: hsl(220deg 20% 95%);
+  --cad-color-text-secondary: hsl(220deg 10% 70%);
+  --cad-color-text-muted: hsl(220deg 10% 45%);
+
+  /* UI feedback colors */
+  --cad-color-danger-bg: rgb(239 68 68 / 15%);
+  --cad-color-danger-border: rgb(239 68 68 / 30%);
+  --cad-color-danger-text: hsl(0deg 85% 65%);
+  --cad-color-success-bg: rgb(16 185 129 / 15%);
+  --cad-color-success-border: rgb(16 185 129 / 30%);
+  --cad-color-success-text: hsl(150deg 85% 55%);
+  --cad-color-warning-bg: rgb(245 158 11 / 15%);
+  --cad-color-warning-border: rgb(245 158 11 / 30%);
+  --cad-color-warning-text: hsl(35deg 90% 55%);
+
+  /* Glassmorphism options */
+  --cad-glass-bg-base: rgb(20 24 33 / 75%);
+  --cad-glass-bg-hover: rgb(30 36 48 / 85%);
+  --cad-glass-border-base: rgb(255 255 255 / 8%);
+  --cad-glass-border-focus: rgb(59 130 246 / 45%);
+
+  /* Shadows, Blurs, Radii */
+  --cad-shadow-sm: 0 2px 8px rgb(0 0 0 / 35%);
+  --cad-shadow-md: 0 8px 32px rgb(0 0 0 / 55%);
+  --cad-shadow-glow: 0 0 15px rgb(59 130 246 / 35%);
+  --cad-blur-radius: 16px;
+  --cad-radius-sm: 6px;
+  --cad-radius-md: 10px;
+  --cad-radius-lg: 16px;
+  --cad-radius-round: 50%;
+
+  /* Spacing */
+  --cad-spacing-xs: 4px;
+  --cad-spacing-sm: 8px;
+  --cad-spacing-md: 16px;
+  --cad-spacing-lg: 24px;
+  --cad-spacing-xl: 32px;
+
+  /* Transitions */
+  --cad-transition-fast: 0.15s ease;
+  --cad-transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* Base Typography Reset */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family:
+    Outfit,
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 body {
   background-color: var(--cad-color-surface-base);
   color: var(--cad-color-text-primary);
-  margin: 0;
-  font-family: sans-serif;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
 }

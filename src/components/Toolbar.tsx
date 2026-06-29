@@ -732,32 +732,37 @@ export default function Toolbar({ onOpenSettings }: ToolbarProps): ReactNode {
             <div className="toolbar-divider" />
           </>
         )}
-
+      </div>
+      <div className="toolbar-group" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <span style={{ fontSize: '0.8rem', color: 'var(--cad-color-text-muted)' }}>
+          Mode: {activeTool.toUpperCase()}
+        </span>
         <button
           className="toolbar-btn"
           onClick={undo}
           disabled={!canUndo}
           title="Undo (Ctrl+Z)"
-          style={{ opacity: canUndo ? 1 : 0.4, cursor: canUndo ? 'pointer' : 'not-allowed' }}
+          style={{
+            opacity: canUndo ? 1 : 0.4,
+            cursor: canUndo ? 'pointer' : 'not-allowed',
+            padding: '4px',
+          }}
         >
           <Undo2 size={16} />
-          Undo
         </button>
         <button
           className="toolbar-btn"
           onClick={redo}
           disabled={!canRedo}
           title="Redo (Ctrl+Y)"
-          style={{ opacity: canRedo ? 1 : 0.4, cursor: canRedo ? 'pointer' : 'not-allowed' }}
+          style={{
+            opacity: canRedo ? 1 : 0.4,
+            cursor: canRedo ? 'pointer' : 'not-allowed',
+            padding: '4px',
+          }}
         >
           <Redo2 size={16} />
-          Redo
         </button>
-      </div>
-      <div className="toolbar-group" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <span style={{ fontSize: '0.8rem', color: 'var(--cad-color-text-muted)' }}>
-          Mode: {activeTool.toUpperCase()}
-        </span>
         <button
           className="toolbar-btn"
           onClick={onOpenSettings}

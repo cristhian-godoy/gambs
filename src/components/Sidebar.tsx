@@ -1048,6 +1048,10 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
             {(() => {
               const userFeatures = features.filter((f) => f.params.isDatum !== true);
               const originFeat = features.find((f) => f.id === 'datum_origin');
+              const axisFeatures = features.filter((f) => f.id.startsWith('datum_axis_'));
+              const planeFeatures = features.filter((f) => f.id.startsWith('datum_plane_'));
+              const areAxesVisible = axisFeatures.some((f) => f.params.visible !== false);
+              const arePlanesVisible = planeFeatures.some((f) => f.params.visible !== false);
 
               const renderDatumRow = (
                 feat: Feature | undefined,
@@ -1173,25 +1177,49 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                       >
                         {/* Axes Folder */}
                         <div
-                          onClick={() => setAxesExpanded(!axesExpanded)}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
-                            padding: '4px 12px',
+                            justifyContent: 'space-between',
                             cursor: 'pointer',
-                            gap: '6px',
+                            padding: '4px 12px',
                           }}
+                          onClick={() => setAxesExpanded(!axesExpanded)}
                         >
-                          {axesExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                          <span
-                            style={{
-                              fontSize: '0.8rem',
-                              fontWeight: 600,
-                              color: 'var(--cad-color-text-secondary)',
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {axesExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                            <span
+                              style={{
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                color: 'var(--cad-color-text-secondary)',
+                              }}
+                            >
+                              Axes
+                            </span>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              axisFeatures.forEach((f) => {
+                                updateFeature(f.id, { visible: !areAxesVisible });
+                              });
                             }}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: areAxesVisible
+                                ? 'var(--cad-color-brand-main)'
+                                : 'var(--cad-color-text-muted)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '2px',
+                            }}
+                            title={areAxesVisible ? 'Hide All Axes' : 'Show All Axes'}
                           >
-                            Axes
-                          </span>
+                            {areAxesVisible ? <Eye size={12} /> : <EyeOff size={12} />}
+                          </button>
                         </div>
 
                         {axesExpanded && (
@@ -1216,25 +1244,53 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
 
                         {/* Planes Folder */}
                         <div
-                          onClick={() => setPlanesExpanded(!planesExpanded)}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
-                            padding: '4px 12px',
+                            justifyContent: 'space-between',
                             cursor: 'pointer',
-                            gap: '6px',
+                            padding: '4px 12px',
                           }}
+                          onClick={() => setPlanesExpanded(!planesExpanded)}
                         >
-                          {planesExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                          <span
-                            style={{
-                              fontSize: '0.8rem',
-                              fontWeight: 600,
-                              color: 'var(--cad-color-text-secondary)',
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {planesExpanded ? (
+                              <ChevronDown size={12} />
+                            ) : (
+                              <ChevronRight size={12} />
+                            )}
+                            <span
+                              style={{
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                color: 'var(--cad-color-text-secondary)',
+                              }}
+                            >
+                              Planes
+                            </span>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              planeFeatures.forEach((f) => {
+                                updateFeature(f.id, { visible: !arePlanesVisible });
+                              });
                             }}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: arePlanesVisible
+                                ? 'var(--cad-color-brand-main)'
+                                : 'var(--cad-color-text-muted)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '2px',
+                            }}
+                            title={arePlanesVisible ? 'Hide All Planes' : 'Show All Planes'}
                           >
-                            Planes
-                          </span>
+                            {arePlanesVisible ? <Eye size={12} /> : <EyeOff size={12} />}
+                          </button>
                         </div>
 
                         {planesExpanded && (

@@ -51,6 +51,7 @@ interface CadContextType {
   updateFeature: (id: string, params: Record<string, unknown>) => void;
   deleteFeature: (id: string) => void;
   setActiveFeature: (id: string | null) => void;
+  setActiveBody: (id: string | null) => void;
   enterSketchEdit: (id: string) => void;
   exitSketchEdit: () => void;
   addSketchGeometry: (geometry: SketchGeometry) => void;
@@ -241,6 +242,8 @@ export function CadProvider({ children }: { children: ReactNode }): ReactNode {
     });
   };
 
+  const setActiveBody = (id: string | null) => dispatch({ type: 'SET_ACTIVE_BODY', id });
+
   const undo = () => dispatch({ type: 'UNDO' });
   const redo = () => dispatch({ type: 'REDO' });
   const resetDocument = () => dispatch({ type: 'RESET_DOCUMENT' });
@@ -260,6 +263,7 @@ export function CadProvider({ children }: { children: ReactNode }): ReactNode {
     updateFeature,
     deleteFeature,
     setActiveFeature,
+    setActiveBody,
     enterSketchEdit,
     exitSketchEdit,
     addSketchGeometry,

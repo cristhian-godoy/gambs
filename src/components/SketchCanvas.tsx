@@ -210,7 +210,7 @@ export default function SketchCanvas(): ReactNode {
         ctx.strokeStyle = 'var(--cad-color-brand-secondary)';
         ctx.lineWidth = 3 / zoom;
       } else if (isXHovered) {
-        ctx.strokeStyle = 'hsl(45deg 100% 50%)';
+        ctx.strokeStyle = settings.theme === 'light' ? 'hsl(35deg 90% 45%)' : 'hsl(45deg 100% 50%)';
         ctx.lineWidth = 2.5 / zoom;
       } else {
         ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)';
@@ -228,7 +228,7 @@ export default function SketchCanvas(): ReactNode {
         ctx.strokeStyle = 'var(--cad-color-brand-secondary)';
         ctx.lineWidth = 3 / zoom;
       } else if (isYHovered) {
-        ctx.strokeStyle = 'hsl(45deg 100% 50%)';
+        ctx.strokeStyle = settings.theme === 'light' ? 'hsl(35deg 90% 45%)' : 'hsl(45deg 100% 50%)';
         ctx.lineWidth = 2.5 / zoom;
       } else {
         ctx.strokeStyle = 'rgba(34, 197, 94, 0.4)';
@@ -262,9 +262,11 @@ export default function SketchCanvas(): ReactNode {
             if (isSelected) {
               ctx.strokeStyle = 'var(--cad-color-brand-secondary)';
             } else if (isHovered) {
-              ctx.strokeStyle = 'hsl(45deg 100% 50%)';
+              ctx.strokeStyle =
+                settings.theme === 'light' ? 'hsl(35deg 90% 45%)' : 'hsl(45deg 100% 50%)';
             } else {
-              ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+              ctx.strokeStyle =
+                settings.theme === 'light' ? 'rgba(0, 0, 0, 0.35)' : 'rgba(255, 255, 255, 0.25)';
             }
           } else {
             ctx.setLineDash([]);
@@ -272,7 +274,8 @@ export default function SketchCanvas(): ReactNode {
               ctx.strokeStyle = 'var(--cad-color-brand-secondary)';
               ctx.lineWidth = 3 / zoom;
             } else if (isHovered) {
-              ctx.strokeStyle = 'hsl(45deg 100% 50%)';
+              ctx.strokeStyle =
+                settings.theme === 'light' ? 'hsl(35deg 90% 45%)' : 'hsl(45deg 100% 50%)';
               ctx.lineWidth = 2.5 / zoom;
             } else if (!converged) {
               // Red for over-constrained/conflict
@@ -347,7 +350,8 @@ export default function SketchCanvas(): ReactNode {
             );
 
             if (isVertHovered) {
-              ctx.fillStyle = 'hsl(45deg 100% 50%)';
+              ctx.fillStyle =
+                settings.theme === 'light' ? 'hsl(35deg 90% 45%)' : 'hsl(45deg 100% 50%)';
               ctx.beginPath();
               ctx.arc(vert.point.x, vert.point.y, 6 / zoom, 0, Math.PI * 2);
               ctx.fill();
@@ -355,7 +359,9 @@ export default function SketchCanvas(): ReactNode {
               ctx.fillStyle = isVertSelected
                 ? 'var(--cad-color-brand-secondary)'
                 : geom.isConstruction
-                  ? 'rgba(255, 255, 255, 0.4)'
+                  ? settings.theme === 'light'
+                    ? 'rgba(0, 0, 0, 0.4)'
+                    : 'rgba(255, 255, 255, 0.4)'
                   : 'var(--cad-color-brand-main)';
               ctx.beginPath();
               ctx.arc(vert.point.x, vert.point.y, 4 / zoom, 0, Math.PI * 2);
@@ -368,7 +374,8 @@ export default function SketchCanvas(): ReactNode {
         if (previewRef.current) {
           const drawSinglePreview = (g: SketchGeometry) => {
             ctx.save();
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
+            ctx.strokeStyle =
+              settings.theme === 'light' ? 'rgba(0, 0, 0, 0.55)' : 'rgba(255, 255, 255, 0.55)';
             ctx.lineWidth = 2 / zoom;
             ctx.setLineDash([5 / zoom, 5 / zoom]);
             if (g.type === 'line') drawLine(ctx, g);
@@ -424,14 +431,24 @@ export default function SketchCanvas(): ReactNode {
             if (line && line.type === 'line') {
               const mx = (line.start.x + line.end.x) / 2;
               const my = (line.start.y + line.end.y) / 2;
-              drawTextBadge('H', mx, my + 15 / zoom, '#60a5fa');
+              drawTextBadge(
+                'H',
+                mx,
+                my + 15 / zoom,
+                settings.theme === 'light' ? '#1d4ed8' : '#60a5fa',
+              );
             }
           } else if (c.type === 'vertical') {
             const line = geometries.find((g) => g.id === c.targets[0].geomId);
             if (line && line.type === 'line') {
               const mx = (line.start.x + line.end.x) / 2;
               const my = (line.start.y + line.end.y) / 2;
-              drawTextBadge('V', mx + 15 / zoom, my, '#34d399');
+              drawTextBadge(
+                'V',
+                mx + 15 / zoom,
+                my,
+                settings.theme === 'light' ? '#047857' : '#34d399',
+              );
             }
           } else if (c.type === 'distance') {
             const p1 = resolvePointCoords(c.targets[0], geometries);
@@ -452,7 +469,7 @@ export default function SketchCanvas(): ReactNode {
               const oy = my + ny * offsetDist;
 
               // Draw thin dimension guide lines
-              ctx.strokeStyle = '#f59e0b'; // amber color for dimensions
+              ctx.strokeStyle = settings.theme === 'light' ? '#b45309' : '#f59e0b'; // amber color for dimensions
               ctx.lineWidth = 1 / zoom;
               ctx.setLineDash([3 / zoom, 3 / zoom]);
 
@@ -471,7 +488,13 @@ export default function SketchCanvas(): ReactNode {
 
               // Draw distance value badge
               const val = c.value !== undefined ? c.value : len;
-              drawTextBadge(`${val.toFixed(1)} mm`, ox, oy, '#f59e0b', 10);
+              drawTextBadge(
+                `${val.toFixed(1)} mm`,
+                ox,
+                oy,
+                settings.theme === 'light' ? '#b45309' : '#f59e0b',
+                10,
+              );
 
               // Record coordinates for double click editing
               dimensionTextsRef.current.push({ id: c.id, x: ox, y: oy, value: val });
@@ -483,7 +506,7 @@ export default function SketchCanvas(): ReactNode {
               const ox = circle.center.x + (circle.radius + 15 / zoom) * Math.cos(theta);
               const oy = circle.center.y + (circle.radius + 15 / zoom) * Math.sin(theta);
 
-              ctx.strokeStyle = '#f59e0b';
+              ctx.strokeStyle = settings.theme === 'light' ? '#b45309' : '#f59e0b';
               ctx.lineWidth = 1 / zoom;
               ctx.beginPath();
               ctx.moveTo(
@@ -494,7 +517,13 @@ export default function SketchCanvas(): ReactNode {
               ctx.stroke();
 
               const val = c.value !== undefined ? c.value : circle.radius;
-              drawTextBadge(`R ${val.toFixed(1)}`, ox, oy, '#f59e0b', 10);
+              drawTextBadge(
+                `R ${val.toFixed(1)}`,
+                ox,
+                oy,
+                settings.theme === 'light' ? '#b45309' : '#f59e0b',
+                10,
+              );
 
               dimensionTextsRef.current.push({ id: c.id, x: ox, y: oy, value: val });
             }
@@ -514,7 +543,13 @@ export default function SketchCanvas(): ReactNode {
               const valRad = c.value !== undefined ? c.value : Math.PI / 2;
               const valDeg = (valRad * 180) / Math.PI;
 
-              drawTextBadge(`${valDeg.toFixed(1)}°`, ax, ay, '#f59e0b', 10);
+              drawTextBadge(
+                `${valDeg.toFixed(1)}°`,
+                ax,
+                ay,
+                settings.theme === 'light' ? '#b45309' : '#f59e0b',
+                10,
+              );
 
               dimensionTextsRef.current.push({ id: c.id, x: ax, y: ay, value: valDeg });
             }
@@ -533,7 +568,7 @@ export default function SketchCanvas(): ReactNode {
         ctx.arc(0, 0, 6 / zoom, 0, Math.PI * 2);
         ctx.fill();
       } else if (isOriginHovered) {
-        ctx.fillStyle = 'hsl(45deg 100% 50%)';
+        ctx.fillStyle = settings.theme === 'light' ? 'hsl(35deg 90% 45%)' : 'hsl(45deg 100% 50%)';
         ctx.beginPath();
         ctx.arc(0, 0, 6 / zoom, 0, Math.PI * 2);
         ctx.fill();

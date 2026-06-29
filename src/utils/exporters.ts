@@ -138,9 +138,9 @@ function downloadFile(filename: string, content: string, mimeType: string) {
 /**
  * Exports a BrepShape to ASCII STL format.
  */
-export function exportToStl(shape: BrepShape, filename: string = 'model.stl') {
+export function exportToStl(shape: BrepShape, filename: string = 'gambs_model.stl') {
   const triangles = getFaceTriangles(shape);
-  let stl = 'solid spacad_model\n';
+  let stl = 'solid gambs_model\n';
 
   for (const tri of triangles) {
     const { vertices, normal } = tri;
@@ -153,16 +153,16 @@ export function exportToStl(shape: BrepShape, filename: string = 'model.stl') {
     stl += '  endfacet\n';
   }
 
-  stl += 'endsolid spacad_model\n';
+  stl += 'endsolid gambs_model\n';
   downloadFile(filename, stl, 'text/plain');
 }
 
 /**
  * Exports a BrepShape to OBJ format.
  */
-export function exportToObj(shape: BrepShape, filename: string = 'model.obj') {
+export function exportToObj(shape: BrepShape, filename: string = 'gambs_model.obj') {
   const triangles = getFaceTriangles(shape);
-  let obj = '# SPA CAD OBJ Export\n';
+  let obj = '# gambs OBJ Export\n';
 
   let vertexCount = 1;
   for (const tri of triangles) {
@@ -181,11 +181,11 @@ export function exportToObj(shape: BrepShape, filename: string = 'model.obj') {
 /**
  * Exports a BrepShape to STEP format (structured B-Rep).
  */
-export function exportToStep(shape: BrepShape, filename: string = 'model.stp') {
+export function exportToStep(shape: BrepShape, filename: string = 'gambs_model.stp') {
   let step = `ISO-10303-21;
 HEADER;
-FILE_DESCRIPTION(('SPA CAD B-Rep Model'),'2;1');
-FILE_NAME('${filename}','2026-06-29T08:00:00',('Antigravity'),('DeepMind'),'Antigravity SPA CAD','SPA CAD','');
+FILE_DESCRIPTION(('gambs B-Rep Model'),'2;1');
+FILE_NAME('${filename}','2026-06-29T08:00:00',('Antigravity'),('DeepMind'),'Antigravity gambs','gambs','');
 FILE_SCHEMA(('CONFIG_CONTROL_DESIGN'));
 ENDSEC;
 DATA;

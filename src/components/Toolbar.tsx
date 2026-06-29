@@ -132,7 +132,7 @@ export default function Toolbar({ onOpenSettings }: ToolbarProps): ReactNode {
     const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', 'project.json');
+    linkElement.setAttribute('download', 'gambs_project.json');
     linkElement.click();
   };
 
@@ -157,17 +157,17 @@ export default function Toolbar({ onOpenSettings }: ToolbarProps): ReactNode {
 
   const handleExportStl = () => {
     const solid = buildSolidFromFeatures(features);
-    exportToStl(solid, 'model.stl');
+    exportToStl(solid, 'gambs_model.stl');
   };
 
   const handleExportObj = () => {
     const solid = buildSolidFromFeatures(features);
-    exportToObj(solid, 'model.obj');
+    exportToObj(solid, 'gambs_model.obj');
   };
 
   const handleExportStep = () => {
     const solid = buildSolidFromFeatures(features);
-    exportToStep(solid, 'model.stp');
+    exportToStep(solid, 'gambs_model.stp');
   };
 
   const handleImportStep = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -1,14 +1,27 @@
-import { Circle, MousePointer, Redo2, Save, Slash, Square, Undo2 } from 'lucide-react';
+import { Circle, MousePointer, Redo2, Save, Slash, Square, ToggleLeft, Undo2 } from 'lucide-react';
 import { type ReactNode } from 'react';
 
 import { useCad } from '../store/CadContext.tsx';
 
 /**
- * Top Toolbar component containing global actions and drawing tools.
+ * Top Toolbar component containing global actions, drawing tools, and construction toggle.
  * @returns The rendered Toolbar component.
  */
 export default function Toolbar(): ReactNode {
-  const { undo, redo, canUndo, canRedo, activeTool, setActiveTool } = useCad();
+  const {
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    activeTool,
+    setActiveTool,
+    selectedGeomIds,
+    toggleConstructionGeometries,
+  } = useCad();
+
+  // Show construction button only if there are selections that are not virtual datums
+  const validSelections = selectedGeomIds.filter((id) => !id.startsWith('datum_'));
+  const hasSelection = validSelections.length > 0;
 
   return (
     <header className="top-toolbar">
@@ -54,6 +67,23 @@ export default function Toolbar(): ReactNode {
         >
           <Square size={16} />
           Rectangle
+        </button>
+
+        <div className="toolbar-divider" />
+
+        {/* Construction Geometry Toggle */}
+        <button
+          className="toolbar-btn"
+          onClick={() => toggleConstructionGeometries(validSelections)}
+          disabled={!hasSelection}
+          title="Toggle Construction Line (Ctrl/Shift to select first)"
+          style={{
+            opacity: hasSelection ? 1 : 0.4,
+            cursor: hasSelection ? 'pointer' : 'not-allowed',
+          }}
+        >
+          <ToggleLeft size={16} />
+          Construction
         </button>
 
         <div className="toolbar-divider" />

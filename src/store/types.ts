@@ -26,11 +26,12 @@ export type FeatureType =
 /**
  * Discrimination structure for geometries in a sketch.
  */
-export type SketchGeometry =
+export type SketchGeometry = (
   | ({ type: 'line' } & Line2D)
   | ({ type: 'circle' } & Circle2D)
   | ({ type: 'arc' } & Arc2D)
-  | ({ type: 'rect' } & Rect2D);
+  | ({ type: 'rect' } & Rect2D)
+) & { isConstruction?: boolean };
 
 /**
  * Representation of a single parametric CAD feature.

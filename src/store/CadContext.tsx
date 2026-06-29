@@ -18,6 +18,8 @@ interface CadContextType {
   canRedo: boolean;
   activeTool: ToolType;
   setActiveTool: (tool: ToolType) => void;
+  selectedGeomIds: string[];
+  setSelectedGeomIds: (ids: string[]) => void;
   addFeature: (
     type: FeatureType,
     name: string,
@@ -31,6 +33,7 @@ interface CadContextType {
   exitSketchEdit: () => void;
   addSketchGeometry: (geometry: SketchGeometry) => void;
   deleteSketchGeometry: (geometryId: string) => void;
+  toggleConstructionGeometries: (geomIds: string[]) => void;
   undo: () => void;
   redo: () => void;
 }
@@ -45,6 +48,7 @@ const CadContext = createContext<CadContextType | undefined>(undefined);
 export function CadProvider({ children }: { children: ReactNode }): ReactNode {
   const [history, dispatch] = useReducer(cadReducer, initialHistoryState);
   const [activeTool, setActiveTool] = useState<ToolType>('select');
+  const [selectedGeomIds, setSelectedGeomIds] = useState<string[]>([]);
 
   const addFeature = (
     type: FeatureType,
@@ -86,6 +90,31 @@ export function CadProvider({ children }: { children: ReactNode }): ReactNode {
     dispatch({ type: 'DELETE_SKETCH_GEOMETRY', geometryId });
   };
 
+  const toggleConstructionGeometries = (geomIds: string[]) => {
+    const activeSketchId = history.present.activeSketchId;
+    if (!activeSketchId) return;
+
+    const activeSketch = history.present.features.find((f) => f.id === activeSketchId);
+    if (!activeSketch) return;
+
+    const currentGeometries = (activeSketch.params.geometries as SketchGeometry[]) || [];
+    const nextGeometries = currentGeometries.map((g) => {
+      if (geomIds.includes(g.id)) {
+        return {
+          ...g,
+          isConstruction: !g.isConstruction,
+        };
+      }
+      return g;
+    });
+
+    dispatch({
+      type: 'UPDATE_FEATURE',
+      id: activeSketchId,
+      params: { ...activeSketch.params, geometries: nextGeometries },
+    });
+  };
+
   const undo = () => dispatch({ type: 'UNDO' });
   const redo = () => dispatch({ type: 'REDO' });
 
@@ -95,6 +124,8 @@ export function CadProvider({ children }: { children: ReactNode }): ReactNode {
     canRedo: history.future.length > 0,
     activeTool,
     setActiveTool,
+    selectedGeomIds,
+    setSelectedGeomIds,
     addFeature,
     updateFeature,
     deleteFeature,
@@ -103,6 +134,7 @@ export function CadProvider({ children }: { children: ReactNode }): ReactNode {
     exitSketchEdit,
     addSketchGeometry,
     deleteSketchGeometry,
+    toggleConstructionGeometries,
     undo,
     redo,
   };

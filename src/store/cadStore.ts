@@ -23,7 +23,6 @@ export type CadAction =
   | { type: 'ADD_SKETCH_GEOMETRY'; geometry: SketchGeometry }
   | { type: 'DELETE_SKETCH_GEOMETRY'; geometryId: string }
   | { type: 'SET_ACTIVE_BODY'; id: string | null }
-  | { type: 'SET_ACTIVE_PART'; id: string | null }
   | { type: 'UNDO' }
   | { type: 'REDO' }
   | { type: 'RESET_DOCUMENT' }
@@ -84,7 +83,6 @@ export const initialDocumentState: DocumentState = {
   activeFeatureId: null,
   activeSketchId: null,
   activeBodyId: null,
-  activePartId: null,
 };
 
 export const initialHistoryState: CadHistoryState = {
@@ -125,16 +123,10 @@ export function cadReducer(state: CadHistoryState, action: CadAction): CadHistor
         targetFeature.parentId = present.activeBodyId;
       }
 
-      // If a body is being added, auto-nest under activePartId
-      if (targetFeature.type === 'body' && !targetFeature.parentId && present.activePartId) {
-        targetFeature.parentId = present.activePartId;
-      }
-
       newFeatures.push(targetFeature);
 
       let nextActiveId = targetFeature.id;
       let nextActiveBodyId = present.activeBodyId;
-      let nextActivePartId = present.activePartId;
 
       if (targetFeature.type === 'body') {
         const bodyId = targetFeature.id;
@@ -279,7 +271,6 @@ export function cadReducer(state: CadHistoryState, action: CadAction): CadHistor
           localPlaneZX,
         );
         nextActiveId = localPlaneZX.id;
-        nextActivePartId = partId;
       }
 
       const nextPresent: DocumentState = {
@@ -287,7 +278,6 @@ export function cadReducer(state: CadHistoryState, action: CadAction): CadHistor
         features: newFeatures,
         activeFeatureId: nextActiveId,
         activeBodyId: nextActiveBodyId,
-        activePartId: nextActivePartId,
       };
 
       return {
@@ -415,19 +405,6 @@ export function cadReducer(state: CadHistoryState, action: CadAction): CadHistor
         present: {
           ...present,
           activeBodyId: action.id,
-        },
-      };
-    }
-
-    case 'SET_ACTIVE_PART': {
-      if (action.id !== null && !present.features.some((f) => f.id === action.id)) {
-        return state;
-      }
-      return {
-        ...state,
-        present: {
-          ...present,
-          activePartId: action.id,
         },
       };
     }

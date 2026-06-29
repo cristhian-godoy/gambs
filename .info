@@ -22,3 +22,5 @@ eslint.config.js
 	Linter configurations.
 .prettierrc
 	Prettier formatter configuration rules.
+.stylelintrc.json
+	Stylelint CSS linter rules.

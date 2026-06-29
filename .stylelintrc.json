@@ -1,0 +1,18 @@
+{
+  "extends": ["stylelint-config-standard"],
+  "plugins": ["stylelint-declaration-strict-value"],
+  "rules": {
+    "scale-unlimited/declaration-strict-value": [
+      ["color", "background-color", "border-color", "fill", "box-shadow"],
+      {
+        "ignoreVariables": true,
+        "ignoreValues": ["none", "transparent"],
+        "severity": "error"
+      }
+    ],
+    "selector-class-pattern": null,
+    "keyframes-name-pattern": null,
+    "no-descending-specificity": null,
+    "declaration-block-no-duplicate-properties": null
+  }
+}

@@ -26,11 +26,13 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
   const { features, activeFeatureId } = documentState;
 
   const [width, setWidth] = useState(320);
+  const [dragging, setDragging] = useState(false);
   const isDragging = useRef(false);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     isDragging.current = true;
+    setDragging(true);
     document.body.style.cursor = 'ew-resize';
     document.body.style.userSelect = 'none';
   };
@@ -45,6 +47,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
     const handleMouseUp = () => {
       if (isDragging.current) {
         isDragging.current = false;
+        setDragging(false);
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
       }
@@ -1016,7 +1019,10 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
     <>
       <aside
         className={`sidebar ${isOpen ? '' : 'collapsed'}`}
-        style={{ width: isOpen ? `${width}px` : '0px' }}
+        style={{
+          width: isOpen ? `${width}px` : '0px',
+          transition: dragging ? 'none' : undefined,
+        }}
       >
         <div className="sidebar-header">
           <span className="sidebar-title">Feature Tree</span>
@@ -1341,7 +1347,10 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
       <button
         className="sidebar-toggle"
         onClick={onToggle}
-        style={{ left: isOpen ? `${width}px` : '0px' }}
+        style={{
+          left: isOpen ? `${width}px` : '0px',
+          transition: dragging ? 'none' : undefined,
+        }}
         title={isOpen ? 'Collapse Sidebar' : 'Expand Sidebar'}
         aria-label={isOpen ? 'Collapse Sidebar' : 'Expand Sidebar'}
       >

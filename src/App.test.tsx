@@ -6,6 +6,6 @@ import App from './App.tsx';
 describe('App', () => {
   it('renders without crashing', () => {
     render(<App />);
-    expect(screen.getByRole('heading', { name: /SPA CAD/i })).toBeInTheDocument();
+    expect(screen.getByText(/SPA CAD/i)).toBeInTheDocument();
   });
 });

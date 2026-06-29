@@ -1,2 +1,6 @@
-# Components Directory
-# Contains React components for the user interface.
+Toolbar.tsx
+	Top actions bar with Save, Undo, and Redo controls.
+Sidebar.tsx
+	Collapsible panel displaying feature lists and properties.
+Viewport.tsx
+	Main CAD workspace rendering grid and coordinates.

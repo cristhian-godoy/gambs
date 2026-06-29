@@ -6,6 +6,9 @@ import {
   getArcAABB,
   getCircleAABB,
   getLineAABB,
+  hitTestCircle,
+  hitTestLine,
+  hitTestRect,
   projectPointOnLine,
 } from './geometry.ts';
 
@@ -65,5 +68,19 @@ describe('Geometry Utilities', () => {
     expect(aabb.min.y).toBeCloseTo(0);
     expect(aabb.max.x).toBeCloseTo(5);
     expect(aabb.max.y).toBeCloseTo(5);
+  });
+
+  it('performs hit testing correctly', () => {
+    const line = { id: 'l1', start: { x: 0, y: 0 }, end: { x: 10, y: 0 } };
+    expect(hitTestLine({ x: 5, y: 0.1 }, line, 0.2)).toBe(true);
+    expect(hitTestLine({ x: 5, y: 0.5 }, line, 0.2)).toBe(false);
+
+    const circle = { id: 'c1', center: { x: 0, y: 0 }, radius: 5 };
+    expect(hitTestCircle({ x: 5.1, y: 0 }, circle, 0.2)).toBe(true);
+    expect(hitTestCircle({ x: 3, y: 3 }, circle, 0.2)).toBe(false);
+
+    const rect = { id: 'r1', start: { x: 0, y: 0 }, end: { x: 10, y: 10 } };
+    expect(hitTestRect({ x: 5, y: 0.05 }, rect, 0.1)).toBe(true); // on top edge
+    expect(hitTestRect({ x: 5, y: 5 }, rect, 0.1)).toBe(false); // inside but not on edge
   });
 });

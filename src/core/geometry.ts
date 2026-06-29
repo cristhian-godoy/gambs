@@ -270,6 +270,66 @@ export function getArcAABB(arc: Arc2D): BoundingBox2D {
 }
 
 /**
+ * Checks if a point hits a line segment within a pixel tolerance.
+ * @param p The point to check.
+ * @param line The line segment.
+ * @param tolerance Distance tolerance.
+ * @returns True if the point is near the line segment.
+ */
+export function hitTestLine(p: Point2D, line: Line2D, tolerance: number): boolean {
+  return distancePointToLineSegment(p, line) <= tolerance;
+}
+
+/**
+ * Checks if a point hits a circle boundary within a pixel tolerance.
+ * @param p The point to check.
+ * @param circle The circle.
+ * @param tolerance Distance tolerance.
+ * @returns True if the point is near the circle boundary.
+ */
+export function hitTestCircle(p: Point2D, circle: Circle2D, tolerance: number): boolean {
+  const distToCenter = distance(p, circle.center);
+  return Math.abs(distToCenter - circle.radius) <= tolerance;
+}
+
+/**
+ * Checks if a point hits a rectangle boundary within a pixel tolerance.
+ * @param p The point to check.
+ * @param rect The rectangle.
+ * @param tolerance Distance tolerance.
+ * @returns True if the point is near any of the rectangle boundaries.
+ */
+export function hitTestRect(p: Point2D, rect: Rect2D, tolerance: number): boolean {
+  const top: Line2D = {
+    id: '',
+    start: { x: rect.start.x, y: rect.start.y },
+    end: { x: rect.end.x, y: rect.start.y },
+  };
+  const right: Line2D = {
+    id: '',
+    start: { x: rect.end.x, y: rect.start.y },
+    end: { x: rect.end.x, y: rect.end.y },
+  };
+  const bottom: Line2D = {
+    id: '',
+    start: { x: rect.end.x, y: rect.end.y },
+    end: { x: rect.start.x, y: rect.end.y },
+  };
+  const left: Line2D = {
+    id: '',
+    start: { x: rect.start.x, y: rect.end.y },
+    end: { x: rect.start.x, y: rect.start.y },
+  };
+
+  return (
+    distancePointToLineSegment(p, top) <= tolerance ||
+    distancePointToLineSegment(p, right) <= tolerance ||
+    distancePointToLineSegment(p, bottom) <= tolerance ||
+    distancePointToLineSegment(p, left) <= tolerance
+  );
+}
+
+/**
  * Draws a line segment on canvas.
  * @param ctx The Canvas rendering context.
  * @param line The line segment.

@@ -1,11 +1,25 @@
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
-import { drawCircle, drawLine, drawRect } from '../core/geometry.ts';
+import {
+  distance,
+  drawCircle,
+  drawLine,
+  drawRect,
+  hitTestCircle,
+  hitTestLine,
+  hitTestRect,
+} from '../core/geometry.ts';
 import { useCad } from '../store/CadContext.tsx';
 import { SketchGeometry } from '../store/types.ts';
 
+interface Vertex {
+  geomId: string;
+  type: 'start' | 'end' | 'center' | 'corner1' | 'corner2';
+  point: { x: number; y: number };
+}
+
 /**
- * Performant 2D sketch canvas with pan, zoom, and interactive drawing tools.
+ * Performant 2D sketch canvas with pan, zoom, drawing, selection, and dragging.
  * @returns The rendered SketchCanvas component.
  */
 export default function SketchCanvas(): ReactNode {
@@ -20,6 +34,7 @@ export default function SketchCanvas(): ReactNode {
     addFeature,
     enterSketchEdit,
     addSketchGeometry,
+    updateFeature,
   } = useCad();
   const { activeSketchId, features } = documentState;
 
@@ -38,6 +53,21 @@ export default function SketchCanvas(): ReactNode {
   const drawingStartRef = useRef<{ x: number; y: number } | null>(null);
   const previewRef = useRef<SketchGeometry | null>(null);
 
+  // Hover and Selection state
+  const hoveredGeomIdRef = useRef<string | null>(null);
+  const hoveredVertexRef = useRef<Vertex | null>(null);
+  const [selectedGeomIds, setSelectedGeomIds] = useState<string[]>([]);
+
+  // Drag modification state
+  const isDraggingEntityRef = useRef(false);
+  const dragStartWorldRef = useRef<{ x: number; y: number } | null>(null);
+  const draggedVertexRef = useRef<Vertex | null>(null);
+  const draggedGeomIdRef = useRef<string | null>(null);
+  const initialGeomsForDragRef = useRef<SketchGeometry[]>([]);
+
+  // Local mutable geometries during dragging to avoid state lag
+  const localGeometriesRef = useRef<SketchGeometry[]>([]);
+
   // Expose viewport coordinates to UI
   const [coords, setCoords] = useState({ x: 0, y: 0 });
 
@@ -46,11 +76,19 @@ export default function SketchCanvas(): ReactNode {
     activeTool,
     activeSketchId,
     features,
+    selectedGeomIds,
   });
 
   useEffect(() => {
-    stateRef.current = { activeTool, activeSketchId, features };
-  }, [activeTool, activeSketchId, features]);
+    stateRef.current = { activeTool, activeSketchId, features, selectedGeomIds };
+    // Synchronize localGeometriesRef with features when not dragging
+    if (!isDraggingEntityRef.current && activeSketchId) {
+      const activeSketch = features.find((f) => f.id === activeSketchId);
+      if (activeSketch) {
+        localGeometriesRef.current = (activeSketch.params.geometries as SketchGeometry[]) || [];
+      }
+    }
+  }, [activeTool, activeSketchId, features, selectedGeomIds]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -68,7 +106,8 @@ export default function SketchCanvas(): ReactNode {
 
     const drawGrid = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
       const { zoom, offsetX, offsetY } = transformRef.current;
-      const { activeSketchId: currentSketchId, features: currentFeatures } = stateRef.current;
+      const { activeSketchId: currentSketchId, selectedGeomIds: currentSelected } =
+        stateRef.current;
 
       ctx.clearRect(0, 0, width, height);
 
@@ -136,15 +175,68 @@ export default function SketchCanvas(): ReactNode {
 
       // Draw active sketch geometries
       if (currentSketchId) {
-        const activeSketch = currentFeatures.find((f) => f.id === currentSketchId);
-        if (activeSketch) {
-          const geometries = (activeSketch.params.geometries as SketchGeometry[]) || [];
-          ctx.strokeStyle = 'var(--cad-color-brand-main)'; // brand blue for drawn shapes
-          ctx.lineWidth = 2 / zoom;
-          for (const geom of geometries) {
-            if (geom.type === 'line') drawLine(ctx, geom);
-            else if (geom.type === 'circle') drawCircle(ctx, geom);
-            else if (geom.type === 'rect') drawRect(ctx, geom);
+        const geometries = localGeometriesRef.current;
+        for (const geom of geometries) {
+          const isSelected = currentSelected.includes(geom.id);
+          const isHovered = hoveredGeomIdRef.current === geom.id;
+
+          // Selection highlights
+          if (isSelected) {
+            ctx.strokeStyle = 'var(--cad-color-brand-secondary)'; // teal for selected
+            ctx.lineWidth = 3 / zoom;
+          } else if (isHovered) {
+            ctx.strokeStyle = 'hsl(45deg 100% 50%)'; // yellow/orange for hovered
+            ctx.lineWidth = 2.5 / zoom;
+          } else {
+            ctx.strokeStyle = 'var(--cad-color-brand-main)'; // standard brand blue
+            ctx.lineWidth = 2 / zoom;
+          }
+
+          if (geom.type === 'line') drawLine(ctx, geom);
+          else if (geom.type === 'circle') drawCircle(ctx, geom);
+          else if (geom.type === 'rect') drawRect(ctx, geom);
+
+          // Draw vertices / endpoints
+          const vertices: Vertex[] = [];
+          if (geom.type === 'line') {
+            vertices.push({ geomId: geom.id, type: 'start', point: geom.start });
+            vertices.push({ geomId: geom.id, type: 'end', point: geom.end });
+          } else if (geom.type === 'circle') {
+            vertices.push({ geomId: geom.id, type: 'center', point: geom.center });
+          } else if (geom.type === 'rect') {
+            vertices.push({ geomId: geom.id, type: 'start', point: geom.start });
+            vertices.push({ geomId: geom.id, type: 'end', point: geom.end });
+            vertices.push({
+              geomId: geom.id,
+              type: 'corner1',
+              point: { x: geom.end.x, y: geom.start.y },
+            });
+            vertices.push({
+              geomId: geom.id,
+              type: 'corner2',
+              point: { x: geom.start.x, y: geom.end.y },
+            });
+          }
+
+          for (const vert of vertices) {
+            const isVertHovered =
+              hoveredVertexRef.current &&
+              hoveredVertexRef.current.geomId === vert.geomId &&
+              hoveredVertexRef.current.type === vert.type;
+
+            if (isVertHovered) {
+              ctx.fillStyle = 'hsl(45deg 100% 50%)';
+              ctx.beginPath();
+              ctx.arc(vert.point.x, vert.point.y, 6 / zoom, 0, Math.PI * 2);
+              ctx.fill();
+            } else {
+              ctx.fillStyle = isSelected
+                ? 'var(--cad-color-brand-secondary)'
+                : 'var(--cad-color-brand-main)';
+              ctx.beginPath();
+              ctx.arc(vert.point.x, vert.point.y, 4 / zoom, 0, Math.PI * 2);
+              ctx.fill();
+            }
           }
         }
       }
@@ -185,7 +277,6 @@ export default function SketchCanvas(): ReactNode {
 
     requestRedraw();
 
-    // Resize handler
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
@@ -196,9 +287,13 @@ export default function SketchCanvas(): ReactNode {
     });
     resizeObserver.observe(container);
 
-    // Mouse events for pan, zoom, & drawing
+    // Mouse events for pan, zoom, drawing, selection, and drag modification
     const handleMouseDown = (e: MouseEvent) => {
-      const { activeTool: currentTool, activeSketchId: currentSketchId } = stateRef.current;
+      const {
+        activeTool: currentTool,
+        activeSketchId: currentSketchId,
+        selectedGeomIds: currentSelected,
+      } = stateRef.current;
 
       // Pan on middle mouse click or shift + left click
       if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
@@ -209,25 +304,66 @@ export default function SketchCanvas(): ReactNode {
         return;
       }
 
+      // Handle Select & Drag Modification trigger
+      if (e.button === 0 && currentTool === 'select') {
+        const worldPos = screenToWorld(e.clientX, e.clientY);
+
+        // Click down on hovered vertex or geometry -> start dragging!
+        if (hoveredVertexRef.current || hoveredGeomIdRef.current) {
+          isDraggingEntityRef.current = true;
+          dragStartWorldRef.current = worldPos;
+          initialGeomsForDragRef.current = JSON.parse(JSON.stringify(localGeometriesRef.current));
+
+          if (hoveredVertexRef.current) {
+            draggedVertexRef.current = { ...hoveredVertexRef.current };
+            draggedGeomIdRef.current = null;
+          } else {
+            draggedGeomIdRef.current = hoveredGeomIdRef.current;
+            draggedVertexRef.current = null;
+          }
+
+          // Handle Selection update
+          if (hoveredGeomIdRef.current) {
+            const targetId = hoveredGeomIdRef.current;
+            if (e.ctrlKey || e.shiftKey) {
+              // toggle select
+              if (currentSelected.includes(targetId)) {
+                setSelectedGeomIds(currentSelected.filter((id) => id !== targetId));
+              } else {
+                setSelectedGeomIds([...currentSelected, targetId]);
+              }
+            } else {
+              // single select
+              if (!currentSelected.includes(targetId)) {
+                setSelectedGeomIds([targetId]);
+              }
+            }
+          }
+          e.preventDefault();
+        } else {
+          // click empty space -> clear selection
+          if (!e.ctrlKey && !e.shiftKey) {
+            setSelectedGeomIds([]);
+          }
+        }
+        return;
+      }
+
       // Handle drawing triggers
       if (e.button === 0 && currentTool !== 'select') {
         const worldPos = screenToWorld(e.clientX, e.clientY);
 
-        // Ensure a sketch feature exists and is active
         let sketchId = currentSketchId;
         if (!sketchId) {
           sketchId = addFeature('sketch', 'Sketch 1', { geometries: [], constraints: [] }, []);
           enterSketchEdit(sketchId);
-          // Update ref manually to use it in this execution block
           stateRef.current.activeSketchId = sketchId;
         }
 
         if (!isDrawingRef.current) {
-          // Click 1: start drawing
           isDrawingRef.current = true;
           drawingStartRef.current = worldPos;
         } else {
-          // Click 2: commit geometry
           const start = drawingStartRef.current!;
           const id = `${currentTool}_${Date.now()}`;
 
@@ -238,7 +374,6 @@ export default function SketchCanvas(): ReactNode {
               start,
               end: worldPos,
             });
-            // Polyline support: next line starts at this endpoint
             drawingStartRef.current = worldPos;
             previewRef.current = {
               type: 'line',
@@ -256,7 +391,6 @@ export default function SketchCanvas(): ReactNode {
               center: start,
               radius,
             });
-            // Finish drawing
             isDrawingRef.current = false;
             drawingStartRef.current = null;
             previewRef.current = null;
@@ -267,7 +401,6 @@ export default function SketchCanvas(): ReactNode {
               start,
               end: worldPos,
             });
-            // Finish drawing
             isDrawingRef.current = false;
             drawingStartRef.current = null;
             previewRef.current = null;
@@ -290,7 +423,7 @@ export default function SketchCanvas(): ReactNode {
     };
 
     const handleMouseMove = (e: MouseEvent) => {
-      const { activeTool: currentTool } = stateRef.current;
+      const { activeTool: currentTool, activeSketchId: currentSketchId } = stateRef.current;
       const worldPos = screenToWorld(e.clientX, e.clientY);
       setCoords({ x: worldPos.x, y: worldPos.y });
 
@@ -301,6 +434,76 @@ export default function SketchCanvas(): ReactNode {
         transformRef.current.offsetX += dx;
         transformRef.current.offsetY += dy;
         startDragRef.current = { x: e.clientX, y: e.clientY };
+        requestRedraw();
+        return;
+      }
+
+      // Handle Drag Modification
+      if (isDraggingEntityRef.current && currentSketchId) {
+        const start = dragStartWorldRef.current!;
+        const dx = worldPos.x - start.x;
+        const dy = worldPos.y - start.y;
+
+        // Apply deltas to geometries locally (fluid drag)
+        const nextGeoms = initialGeomsForDragRef.current.map((geom) => {
+          // Dragging a specific vertex
+          if (draggedVertexRef.current && draggedVertexRef.current.geomId === geom.id) {
+            const vType = draggedVertexRef.current.type;
+            if (geom.type === 'line') {
+              return {
+                ...geom,
+                start:
+                  vType === 'start' ? { x: geom.start.x + dx, y: geom.start.y + dy } : geom.start,
+                end: vType === 'end' ? { x: geom.end.x + dx, y: geom.end.y + dy } : geom.end,
+              };
+            } else if (geom.type === 'circle') {
+              return {
+                ...geom,
+                center:
+                  vType === 'center'
+                    ? { x: geom.center.x + dx, y: geom.center.y + dy }
+                    : geom.center,
+              };
+            } else if (geom.type === 'rect') {
+              const startCorner = geom.start;
+              const endCorner = geom.end;
+              return {
+                ...geom,
+                start:
+                  vType === 'start'
+                    ? { x: startCorner.x + dx, y: startCorner.y + dy }
+                    : startCorner,
+                end: vType === 'end' ? { x: endCorner.x + dx, y: endCorner.y + dy } : endCorner,
+              };
+            }
+          }
+
+          // Dragging a whole geometry shape
+          if (draggedGeomIdRef.current === geom.id) {
+            if (geom.type === 'line') {
+              return {
+                ...geom,
+                start: { x: geom.start.x + dx, y: geom.start.y + dy },
+                end: { x: geom.end.x + dx, y: geom.end.y + dy },
+              };
+            } else if (geom.type === 'circle') {
+              return {
+                ...geom,
+                center: { x: geom.center.x + dx, y: geom.center.y + dy },
+              };
+            } else if (geom.type === 'rect') {
+              return {
+                ...geom,
+                start: { x: geom.start.x + dx, y: geom.start.y + dy },
+                end: { x: geom.end.x + dx, y: geom.end.y + dy },
+              };
+            }
+          }
+
+          return geom;
+        });
+
+        localGeometriesRef.current = nextGeoms;
         requestRedraw();
         return;
       }
@@ -336,10 +539,85 @@ export default function SketchCanvas(): ReactNode {
           };
         }
         requestRedraw();
+        return;
+      }
+
+      // Handle Hover Calculations in select mode
+      if (currentTool === 'select' && currentSketchId) {
+        const { zoom } = transformRef.current;
+        const toleranceInWorld = 8 / zoom;
+
+        let hitVertex: Vertex | null = null;
+        let hitGeomId: string | null = null;
+
+        // Loop geometries to calculate hover bounds
+        for (const geom of localGeometriesRef.current) {
+          // 1. Check vertex hit testing (precedence over boundaries)
+          if (geom.type === 'line') {
+            if (distance(worldPos, geom.start) <= toleranceInWorld) {
+              hitVertex = { geomId: geom.id, type: 'start', point: geom.start };
+              break;
+            }
+            if (distance(worldPos, geom.end) <= toleranceInWorld) {
+              hitVertex = { geomId: geom.id, type: 'end', point: geom.end };
+              break;
+            }
+          } else if (geom.type === 'circle') {
+            if (distance(worldPos, geom.center) <= toleranceInWorld) {
+              hitVertex = { geomId: geom.id, type: 'center', point: geom.center };
+              break;
+            }
+          } else if (geom.type === 'rect') {
+            if (distance(worldPos, geom.start) <= toleranceInWorld) {
+              hitVertex = { geomId: geom.id, type: 'start', point: geom.start };
+              break;
+            }
+            if (distance(worldPos, geom.end) <= toleranceInWorld) {
+              hitVertex = { geomId: geom.id, type: 'end', point: geom.end };
+              break;
+            }
+          }
+
+          // 2. Check boundary lines hit testing
+          if (geom.type === 'line' && hitTestLine(worldPos, geom, toleranceInWorld)) {
+            hitGeomId = geom.id;
+          } else if (geom.type === 'circle' && hitTestCircle(worldPos, geom, toleranceInWorld)) {
+            hitGeomId = geom.id;
+          } else if (geom.type === 'rect' && hitTestRect(worldPos, geom, toleranceInWorld)) {
+            hitGeomId = geom.id;
+          }
+        }
+
+        // Apply cursor style and call redraw if hover status changed
+        const statusChanged =
+          hoveredGeomIdRef.current !== hitGeomId ||
+          JSON.stringify(hoveredVertexRef.current) !== JSON.stringify(hitVertex);
+
+        if (statusChanged) {
+          hoveredGeomIdRef.current = hitGeomId;
+          hoveredVertexRef.current = hitVertex;
+          canvas.style.cursor = hitVertex || hitGeomId ? 'pointer' : 'default';
+          requestRedraw();
+        }
       }
     };
 
     const handleMouseUp = () => {
+      const { activeSketchId: currentSketchId } = stateRef.current;
+
+      // Handle end of dragging modification -> commit changes in a single action
+      if (isDraggingEntityRef.current) {
+        isDraggingEntityRef.current = false;
+        dragStartWorldRef.current = null;
+        draggedVertexRef.current = null;
+        draggedGeomIdRef.current = null;
+
+        if (currentSketchId) {
+          // Dispatch final update to store
+          updateFeature(currentSketchId, { geometries: localGeometriesRef.current });
+        }
+      }
+
       if (isPanningRef.current) {
         isPanningRef.current = false;
         canvas.style.cursor = 'default';
@@ -413,7 +691,7 @@ export default function SketchCanvas(): ReactNode {
       window.removeEventListener('keydown', handleKeyDown);
       canvas.removeEventListener('contextmenu', handleContextMenu);
     };
-  }, [addFeature, enterSketchEdit, addSketchGeometry, setActiveTool]);
+  }, [addFeature, enterSketchEdit, addSketchGeometry, updateFeature, setActiveTool]);
 
   return (
     <div ref={containerRef} className="viewport-area">

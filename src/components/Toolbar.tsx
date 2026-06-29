@@ -10,7 +10,6 @@ import {
   FolderOpen,
   Link as LinkIcon,
   Lock,
-  MousePointer,
   MoveRight,
   MoveUp,
   Redo2,
@@ -421,21 +420,6 @@ export default function Toolbar(): ReactNode {
             </div>
           )}
         </div>
-        <div className="toolbar-divider" />
-
-        {/* Drawing Tools Group */}
-        <button
-          className={`toolbar-btn ${activeTool === 'select' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveTool('select');
-            setDrawMenuOpen(false);
-          }}
-          title="Select Tool (Esc)"
-        >
-          <MousePointer size={16} />
-          Select
-        </button>
-
         {/* Selection Filter group */}
         <div
           className="filter-group"
@@ -539,9 +523,9 @@ export default function Toolbar(): ReactNode {
               }}
             >
               <button
-                className="dropdown-item"
+                className={`dropdown-item ${activeTool === 'line' ? 'active' : ''}`}
                 onClick={() => {
-                  setActiveTool('line');
+                  setActiveTool(activeTool === 'line' ? 'select' : 'line');
                   setDrawMenuOpen(false);
                 }}
               >
@@ -549,9 +533,9 @@ export default function Toolbar(): ReactNode {
               </button>
 
               <button
-                className="dropdown-item"
+                className={`dropdown-item ${activeTool === 'circle' ? 'active' : ''}`}
                 onClick={() => {
-                  setActiveTool('circle');
+                  setActiveTool(activeTool === 'circle' ? 'select' : 'circle');
                   setDrawMenuOpen(false);
                 }}
               >
@@ -559,9 +543,9 @@ export default function Toolbar(): ReactNode {
               </button>
 
               <button
-                className="dropdown-item"
+                className={`dropdown-item ${activeTool === 'rect' ? 'active' : ''}`}
                 onClick={() => {
-                  setActiveTool('rect');
+                  setActiveTool(activeTool === 'rect' ? 'select' : 'rect');
                   setDrawMenuOpen(false);
                 }}
               >
@@ -569,9 +553,9 @@ export default function Toolbar(): ReactNode {
               </button>
 
               <button
-                className="dropdown-item"
+                className={`dropdown-item ${activeTool === 'arc' ? 'active' : ''}`}
                 onClick={() => {
-                  setActiveTool('arc');
+                  setActiveTool(activeTool === 'arc' ? 'select' : 'arc');
                   setDrawMenuOpen(false);
                 }}
               >
@@ -579,9 +563,9 @@ export default function Toolbar(): ReactNode {
               </button>
 
               <button
-                className="dropdown-item"
+                className={`dropdown-item ${activeTool === 'triangle' ? 'active' : ''}`}
                 onClick={() => {
-                  setActiveTool('triangle');
+                  setActiveTool(activeTool === 'triangle' ? 'select' : 'triangle');
                   setDrawMenuOpen(false);
                 }}
               >
@@ -589,9 +573,9 @@ export default function Toolbar(): ReactNode {
               </button>
 
               <button
-                className="dropdown-item"
+                className={`dropdown-item ${activeTool === 'slot' ? 'active' : ''}`}
                 onClick={() => {
-                  setActiveTool('slot');
+                  setActiveTool(activeTool === 'slot' ? 'select' : 'slot');
                   setDrawMenuOpen(false);
                 }}
               >

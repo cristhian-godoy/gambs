@@ -192,13 +192,16 @@ function tessellateSolid(shape: BrepShape) {
 }
 
 self.onmessage = (e: MessageEvent) => {
+  const workerSelf = self as unknown as {
+    postMessage: (message: unknown, transfer?: Transferable[]) => void;
+  };
   const { type, features } = e.data;
   if (type === 'BUILD_SOLID') {
     try {
       const solid = buildSolidFromFeatures(features);
       const { positions, normals, linePositions } = tessellateSolid(solid);
 
-      self.postMessage(
+      workerSelf.postMessage(
         {
           type: 'BUILD_SOLID_SUCCESS',
           solid,
@@ -209,7 +212,7 @@ self.onmessage = (e: MessageEvent) => {
         [positions.buffer, normals.buffer, linePositions.buffer],
       );
     } catch (err) {
-      self.postMessage({
+      workerSelf.postMessage({
         type: 'BUILD_SOLID_ERROR',
         error: err instanceof Error ? err.message : String(err),
       });

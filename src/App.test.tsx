@@ -83,7 +83,7 @@ vi.mock('three', () => {
       };
       rotation = { x: 0, y: 0, z: 0 };
       material: unknown;
-      constructor(geometry: unknown, material: unknown) {
+      constructor(_geometry: unknown, material: unknown) {
         this.material = material;
       }
     },

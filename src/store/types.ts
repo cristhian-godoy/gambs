@@ -11,6 +11,7 @@ export type FeatureType =
   | 'groove'
   | 'loft'
   | 'pipe'
+  | 'helix'
   | 'fillet'
   | 'chamfer'
   | 'draft'

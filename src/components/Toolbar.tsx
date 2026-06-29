@@ -12,7 +12,6 @@ import {
   FilePlus,
   FolderOpen,
   GitMerge,
-  Intersect,
   Layers,
   LayoutGrid,
   Link as LinkIcon,
@@ -768,7 +767,7 @@ export default function Toolbar({ onOpenSettings }: ToolbarProps): ReactNode {
                   setCombineMenuOpen(false);
                 }}
               >
-                <Intersect size={14} /> Intersect
+                <CircleDot size={14} /> Intersect
               </button>
             </div>
           )}

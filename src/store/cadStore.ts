@@ -22,6 +22,7 @@ export type CadAction =
   | { type: 'EXIT_SKETCH_EDIT' }
   | { type: 'ADD_SKETCH_GEOMETRY'; geometry: SketchGeometry }
   | { type: 'DELETE_SKETCH_GEOMETRY'; geometryId: string }
+  | { type: 'SET_ACTIVE_BODY'; id: string | null }
   | { type: 'UNDO' }
   | { type: 'REDO' }
   | { type: 'RESET_DOCUMENT' }

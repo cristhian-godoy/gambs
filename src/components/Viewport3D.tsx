@@ -268,9 +268,9 @@ export default function Viewport3D(): ReactNode {
 
     if (settings.navigationStyle === 'blender') {
       controls.mouseButtons = {
-        LEFT: THREE.MOUSE.NONE,
+        LEFT: undefined as unknown as THREE.MOUSE,
         MIDDLE: THREE.MOUSE.ROTATE,
-        RIGHT: THREE.MOUSE.NONE,
+        RIGHT: undefined as unknown as THREE.MOUSE,
       };
 
       // OrbitControls maps Ctrl+Rotate to PAN and Shift+Rotate to DOLLY.
@@ -300,7 +300,7 @@ export default function Viewport3D(): ReactNode {
     }
 
     // 3. Dynamic Datum Features Rendering
-    const datumGeometries: (THREE.BufferGeometry | THREE.Material)[] = [];
+    const datumGeometries: (THREE.BufferGeometry | THREE.Material | THREE.Texture)[] = [];
 
     const originFeat = features.find((f) => f.id === 'datum_origin');
     if (originFeat && originFeat.params.visible !== false) {
@@ -359,12 +359,13 @@ export default function Viewport3D(): ReactNode {
       label.position.set(labelOffset, labelOffset, 0);
       scene.add(label);
 
+      const mat = label.material as THREE.MeshBasicMaterial;
       datumGeometries.push(
         xyGrid.geometry,
         xyGrid.material as THREE.Material,
         label.geometry,
-        label.material,
-        label.material.map!,
+        mat,
+        mat.map!,
       );
     }
 
@@ -385,12 +386,13 @@ export default function Viewport3D(): ReactNode {
       label.rotation.y = Math.PI / 2;
       scene.add(label);
 
+      const mat = label.material as THREE.MeshBasicMaterial;
       datumGeometries.push(
         yzGrid.geometry,
         yzGrid.material as THREE.Material,
         label.geometry,
-        label.material,
-        label.material.map!,
+        mat,
+        mat.map!,
       );
     }
 
@@ -410,12 +412,13 @@ export default function Viewport3D(): ReactNode {
       label.rotation.x = Math.PI / 2;
       scene.add(label);
 
+      const mat = label.material as THREE.MeshBasicMaterial;
       datumGeometries.push(
         zxGrid.geometry,
         zxGrid.material as THREE.Material,
         label.geometry,
-        label.material,
-        label.material.map!,
+        mat,
+        mat.map!,
       );
     }
 

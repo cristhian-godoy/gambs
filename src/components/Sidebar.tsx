@@ -147,7 +147,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
           Properties: {activeFeature.name}
         </h4>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {activeFeature.type === 'sketch' && (
+          {activeFeature.type === 'sketch' && activeFeature.params.isDatum !== true && (
             <div>
               <label
                 style={{

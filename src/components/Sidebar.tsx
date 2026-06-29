@@ -1,10 +1,12 @@
 import {
+  Box,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   Eye,
   EyeOff,
   FolderTree,
+  Layers,
   Trash2,
 } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
@@ -32,8 +34,9 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
     enterSketchEdit,
     isSelectingSupportPlane,
     setIsSelectingSupportPlane,
+    setActiveBody,
   } = useCad();
-  const { features, activeFeatureId } = documentState;
+  const { features, activeFeatureId, activeBodyId } = documentState;
 
   const [width, setWidth] = useState(320);
   const [dragging, setDragging] = useState(false);
@@ -42,6 +45,12 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
   const [originExpanded, setOriginExpanded] = useState(true);
   const [axesExpanded, setAxesExpanded] = useState(false);
   const [planesExpanded, setPlanesExpanded] = useState(false);
+  const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
+
+  const toggleNode = (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setExpandedNodes((prev) => ({ ...prev, [id]: prev[id] === false }));
+  };
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -1050,6 +1059,461 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
     );
   };
 
+  const LocalOriginFolder = ({
+    nodeId,
+    depth,
+    localOriginPoints,
+  }: {
+    nodeId: string;
+    depth: number;
+    localOriginPoints: Feature[];
+  }) => {
+    const localOriginExpandedKey = `origin_${nodeId}`;
+    const isLocalOriginExpanded = expandedNodes[localOriginExpandedKey] !== false;
+
+    const axisFeatures = localOriginPoints.filter((f) => f.id.includes('axis_'));
+    const planeFeatures = localOriginPoints.filter((f) => f.id.includes('plane_'));
+    const originFeat = localOriginPoints.find((f) => f.id.includes('origin'));
+
+    const areAxesVisible = axisFeatures.some((f) => f.params.visible !== false);
+    const arePlanesVisible = planeFeatures.some((f) => f.params.visible !== false);
+
+    const renderLocalDatumRow = (feat: Feature | undefined, label: string, paddingLeft: string) => {
+      if (!feat) return null;
+      const isVisible = feat.params.visible !== false;
+      const isActive = activeFeatureId === feat.id;
+      return (
+        <div
+          key={feat.id}
+          onClick={() => {
+            if (isSelectingSupportPlane && feat.id.includes('plane')) {
+              const count =
+                features.filter((f) => f.type === 'sketch' && !f.params.isDatum).length + 1;
+              const name = `Sketch ${count}`;
+              const dependencies = [feat.id];
+              const newSketchId = addFeature(
+                'sketch',
+                name,
+                { supportPlaneId: feat.id, geometries: [], constraints: [] },
+                dependencies,
+              );
+              setIsSelectingSupportPlane(false);
+              enterSketchEdit(newSketchId);
+            } else {
+              setActiveFeature(feat.id);
+            }
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '2px 8px 2px ' + paddingLeft,
+            background: isActive ? 'var(--cad-glass-bg-hover)' : 'transparent',
+            borderLeft: isActive ? '2px solid var(--cad-color-brand-main)' : 'none',
+            borderRadius: 'var(--cad-radius-sm)',
+            cursor: 'pointer',
+          }}
+        >
+          <span
+            style={{
+              fontSize: '0.75rem',
+              color: isActive ? 'var(--cad-color-text-primary)' : 'var(--cad-color-text-secondary)',
+              fontWeight: isActive ? 600 : 400,
+            }}
+          >
+            {label}
+          </span>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              updateFeature(feat.id, { visible: !isVisible });
+            }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: isVisible ? 'var(--cad-color-brand-main)' : 'var(--cad-color-text-muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              padding: '2px',
+            }}
+            title={isVisible ? 'Hide' : 'Show'}
+          >
+            {isVisible ? <Eye size={12} /> : <EyeOff size={12} />}
+          </button>
+        </div>
+      );
+    };
+
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1px',
+          marginLeft: `${depth * 12}px`,
+        }}
+      >
+        <div
+          onClick={() => toggleNode(localOriginExpandedKey)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '3px 8px',
+            background: 'var(--cad-color-surface-tertiary)',
+            border: '1px solid var(--cad-glass-border-base)',
+            borderRadius: 'var(--cad-radius-sm)',
+            cursor: 'pointer',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            {isLocalOriginExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            <FolderTree size={12} style={{ color: 'var(--cad-color-brand-main)' }} />
+            <span
+              style={{
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                color: 'var(--cad-color-text-primary)',
+              }}
+            >
+              Origin
+            </span>
+          </div>
+          {originFeat && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const isVisible = originFeat.params.visible !== false;
+                updateFeature(originFeat.id, { visible: !isVisible });
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color:
+                  originFeat.params.visible !== false
+                    ? 'var(--cad-color-brand-main)'
+                    : 'var(--cad-color-text-muted)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+              title={
+                originFeat.params.visible !== false ? 'Hide Origin Point' : 'Show Origin Point'
+              }
+            >
+              {originFeat.params.visible !== false ? <Eye size={12} /> : <EyeOff size={12} />}
+            </button>
+          )}
+        </div>
+
+        {isLocalOriginExpanded && (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '2px',
+              borderLeft: '1px solid var(--cad-glass-border-base)',
+              marginLeft: '6px',
+              paddingLeft: '4px',
+            }}
+          >
+            {/* Axes Folder */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                padding: '2px 8px',
+              }}
+              onClick={() => toggleNode(`axes_${nodeId}`)}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                {expandedNodes[`axes_${nodeId}`] !== false ? (
+                  <ChevronDown size={12} />
+                ) : (
+                  <ChevronRight size={12} />
+                )}
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    color: 'var(--cad-color-text-secondary)',
+                  }}
+                >
+                  Axes
+                </span>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  axisFeatures.forEach((f) => updateFeature(f.id, { visible: !areAxesVisible }));
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: areAxesVisible
+                    ? 'var(--cad-color-brand-main)'
+                    : 'var(--cad-color-text-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '2px',
+                }}
+              >
+                {areAxesVisible ? <Eye size={12} /> : <EyeOff size={12} />}
+              </button>
+            </div>
+            {expandedNodes[`axes_${nodeId}`] !== false && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                {renderLocalDatumRow(
+                  axisFeatures.find((f) => f.id.includes('axis_x')),
+                  'X Axis',
+                  '12px',
+                )}
+                {renderLocalDatumRow(
+                  axisFeatures.find((f) => f.id.includes('axis_y')),
+                  'Y Axis',
+                  '12px',
+                )}
+                {renderLocalDatumRow(
+                  axisFeatures.find((f) => f.id.includes('axis_z')),
+                  'Z Axis',
+                  '12px',
+                )}
+              </div>
+            )}
+
+            {/* Planes Folder */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                padding: '2px 8px',
+              }}
+              onClick={() => toggleNode(`planes_${nodeId}`)}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                {expandedNodes[`planes_${nodeId}`] !== false ? (
+                  <ChevronDown size={12} />
+                ) : (
+                  <ChevronRight size={12} />
+                )}
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    color: 'var(--cad-color-text-secondary)',
+                  }}
+                >
+                  Planes
+                </span>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  planeFeatures.forEach((f) => updateFeature(f.id, { visible: !arePlanesVisible }));
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: arePlanesVisible
+                    ? 'var(--cad-color-brand-main)'
+                    : 'var(--cad-color-text-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '2px',
+                }}
+              >
+                {arePlanesVisible ? <Eye size={12} /> : <EyeOff size={12} />}
+              </button>
+            </div>
+            {expandedNodes[`planes_${nodeId}`] !== false && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                {renderLocalDatumRow(
+                  planeFeatures.find((f) => f.id.includes('plane_xy')),
+                  'XY Plane',
+                  '12px',
+                )}
+                {renderLocalDatumRow(
+                  planeFeatures.find((f) => f.id.includes('plane_yz')),
+                  'YZ Plane',
+                  '12px',
+                )}
+                {renderLocalDatumRow(
+                  planeFeatures.find((f) => f.id.includes('plane_zx')),
+                  'ZX Plane',
+                  '12px',
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderFeatureNode = (feature: Feature, depth: number = 0): ReactNode => {
+    const isExpanded = expandedNodes[feature.id] !== false;
+    const isActive = feature.id === activeFeatureId;
+    const isBody = feature.type === 'body';
+    const isPart = feature.type === 'part';
+    const isActiveBody = activeBodyId === feature.id;
+
+    const children = features.filter((f) => f.parentId === feature.id && f.params.isDatum !== true);
+    const localOriginPoints = features.filter(
+      (f) => f.parentId === feature.id && f.params.isDatum === true,
+    );
+    const hasLocalOrigin = localOriginPoints.length > 0;
+
+    return (
+      <div key={feature.id} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <div
+          onClick={() => {
+            setActiveFeature(feature.id);
+            if (isBody) {
+              setActiveBody(isActiveBody ? null : feature.id);
+            }
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '4px 8px',
+            background: isActive
+              ? 'var(--cad-glass-bg-hover)'
+              : isActiveBody
+                ? 'rgba(34, 197, 94, 0.1)'
+                : 'var(--cad-color-surface-tertiary)',
+            border: '1px solid',
+            borderColor: isActive
+              ? 'var(--cad-color-brand-main)'
+              : isActiveBody
+                ? 'var(--cad-color-brand-success, #22c55e)'
+                : 'var(--cad-glass-border-base)',
+            borderRadius: 'var(--cad-radius-sm)',
+            cursor: 'pointer',
+            marginLeft: `${depth * 12}px`,
+            transition: 'all var(--cad-transition-fast)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {(isBody || isPart) && (
+              <div
+                onClick={(e) => toggleNode(feature.id, e)}
+                style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+              >
+                {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+              </div>
+            )}
+            {isPart ? (
+              <Layers size={12} style={{ color: 'var(--cad-color-brand-main)' }} />
+            ) : isBody ? (
+              <Box
+                size={12}
+                style={{
+                  color: isActiveBody
+                    ? 'var(--cad-color-brand-success, #22c55e)'
+                    : 'var(--cad-color-text-secondary)',
+                }}
+              />
+            ) : null}
+            <span
+              style={{
+                fontSize: '0.8rem',
+                fontWeight: isActive || isActiveBody ? 600 : 400,
+                color: isActive
+                  ? 'var(--cad-color-text-primary)'
+                  : isActiveBody
+                    ? 'var(--cad-color-brand-success, #22c55e)'
+                    : 'var(--cad-color-text-secondary)',
+              }}
+            >
+              {feature.name}
+              {isActiveBody && (
+                <span
+                  style={{
+                    fontSize: '0.65rem',
+                    marginLeft: '6px',
+                    color: 'var(--cad-color-brand-success, #22c55e)',
+                    fontStyle: 'italic',
+                  }}
+                >
+                  (Active)
+                </span>
+              )}
+              {feature.type === 'sketch' && feature.params.converged === false && (
+                <span
+                  style={{
+                    fontSize: '0.7rem',
+                    color: '#ef4444',
+                    fontWeight: 'bold',
+                    marginLeft: '8px',
+                  }}
+                >
+                  (Conflict)
+                </span>
+              )}
+              {feature.type === 'sketch' &&
+                feature.params.converged !== false &&
+                feature.params.dof !== undefined && (
+                  <span
+                    style={{
+                      fontSize: '0.7rem',
+                      color:
+                        (feature.params.dof as number) === 0
+                          ? '#22c55e'
+                          : 'var(--cad-color-text-muted)',
+                      fontWeight: (feature.params.dof as number) === 0 ? 'bold' : 'normal',
+                      marginLeft: '8px',
+                    }}
+                  >
+                    ({feature.params.dof as number} DOF)
+                  </span>
+                )}
+            </span>
+          </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              deleteFeature(feature.id);
+            }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--cad-color-brand-danger)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              padding: '2px',
+            }}
+            title="Delete Feature"
+          >
+            <Trash2 size={12} />
+          </button>
+        </div>
+
+        {/* Collapsible Children */}
+        {(isBody || isPart) && isExpanded && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            {hasLocalOrigin && (
+              <LocalOriginFolder
+                nodeId={feature.id}
+                depth={depth + 1}
+                localOriginPoints={localOriginPoints}
+              />
+            )}
+            {children.map((child) => renderFeatureNode(child, depth + 1))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <>
       <aside
@@ -1069,12 +1533,23 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {(() => {
-              const userFeatures = features.filter((f) => f.params.isDatum !== true);
-              const originFeat = features.find((f) => f.id === 'datum_origin');
-              const axisFeatures = features.filter((f) => f.id.startsWith('datum_axis_'));
-              const planeFeatures = features.filter((f) => f.id.startsWith('datum_plane_'));
-              const areAxesVisible = axisFeatures.some((f) => f.params.visible !== false);
-              const arePlanesVisible = planeFeatures.some((f) => f.params.visible !== false);
+              const rootUserFeatures = features.filter(
+                (f) => !f.parentId && f.params.isDatum !== true,
+              );
+
+              const globalOriginFeat = features.find((f) => f.id === 'datum_origin');
+              const globalAxisFeatures = features.filter(
+                (f) => f.id.startsWith('datum_axis_') && !f.parentId,
+              );
+              const globalPlaneFeatures = features.filter(
+                (f) => f.id.startsWith('datum_plane_') && !f.parentId,
+              );
+              const areGlobalAxesVisible = globalAxisFeatures.some(
+                (f) => f.params.visible !== false,
+              );
+              const areGlobalPlanesVisible = globalPlaneFeatures.some(
+                (f) => f.params.visible !== false,
+              );
 
               const renderDatumRow = (
                 feat: Feature | undefined,
@@ -1182,18 +1657,18 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                           Origin
                         </span>
                       </div>
-                      {originFeat && (
+                      {globalOriginFeat && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            const isVisible = originFeat.params.visible !== false;
-                            updateFeature(originFeat.id, { visible: !isVisible });
+                            const isVisible = globalOriginFeat.params.visible !== false;
+                            updateFeature(globalOriginFeat.id, { visible: !isVisible });
                           }}
                           style={{
                             background: 'transparent',
                             border: 'none',
                             color:
-                              originFeat.params.visible !== false
+                              globalOriginFeat.params.visible !== false
                                 ? 'var(--cad-color-brand-main)'
                                 : 'var(--cad-color-text-muted)',
                             cursor: 'pointer',
@@ -1201,15 +1676,15 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                             alignItems: 'center',
                           }}
                           title={
-                            originFeat.params.visible !== false
+                            globalOriginFeat.params.visible !== false
                               ? 'Hide Origin Point'
                               : 'Show Origin Point'
                           }
                         >
-                          {originFeat.params.visible !== false ? (
-                            <Eye size={14} />
+                          {globalOriginFeat.params.visible !== false ? (
+                            <Eye size={12} />
                           ) : (
-                            <EyeOff size={14} />
+                            <EyeOff size={12} />
                           )}
                         </button>
                       )}
@@ -1223,7 +1698,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                           flexDirection: 'column',
                           gap: '2px',
                           borderLeft: '1px solid var(--cad-glass-border-base)',
-                          marginLeft: '18px',
+                          marginLeft: '6px',
                           paddingLeft: '4px',
                         }}
                       >
@@ -1234,15 +1709,15 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                             alignItems: 'center',
                             justifyContent: 'space-between',
                             cursor: 'pointer',
-                            padding: '4px 12px',
+                            padding: '2px 8px',
                           }}
                           onClick={() => setAxesExpanded(!axesExpanded)}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                             {axesExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                             <span
                               style={{
-                                fontSize: '0.8rem',
+                                fontSize: '0.75rem',
                                 fontWeight: 600,
                                 color: 'var(--cad-color-text-secondary)',
                               }}
@@ -1253,14 +1728,14 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              axisFeatures.forEach((f) => {
-                                updateFeature(f.id, { visible: !areAxesVisible });
+                              globalAxisFeatures.forEach((f) => {
+                                updateFeature(f.id, { visible: !areGlobalAxesVisible });
                               });
                             }}
                             style={{
                               background: 'transparent',
                               border: 'none',
-                              color: areAxesVisible
+                              color: areGlobalAxesVisible
                                 ? 'var(--cad-color-brand-main)'
                                 : 'var(--cad-color-text-muted)',
                               cursor: 'pointer',
@@ -1268,9 +1743,9 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                               alignItems: 'center',
                               padding: '2px',
                             }}
-                            title={areAxesVisible ? 'Hide All Axes' : 'Show All Axes'}
+                            title={areGlobalAxesVisible ? 'Hide All Axes' : 'Show All Axes'}
                           >
-                            {areAxesVisible ? <Eye size={12} /> : <EyeOff size={12} />}
+                            {areGlobalAxesVisible ? <Eye size={12} /> : <EyeOff size={12} />}
                           </button>
                         </div>
 
@@ -1279,17 +1754,17 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                             {renderDatumRow(
                               features.find((f) => f.id === 'datum_axis_x'),
                               'X Axis',
-                              '24px',
+                              '12px',
                             )}
                             {renderDatumRow(
                               features.find((f) => f.id === 'datum_axis_y'),
                               'Y Axis',
-                              '24px',
+                              '12px',
                             )}
                             {renderDatumRow(
                               features.find((f) => f.id === 'datum_axis_z'),
                               'Z Axis',
-                              '24px',
+                              '12px',
                             )}
                           </div>
                         )}
@@ -1301,11 +1776,11 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                             alignItems: 'center',
                             justifyContent: 'space-between',
                             cursor: 'pointer',
-                            padding: '4px 12px',
+                            padding: '2px 8px',
                           }}
                           onClick={() => setPlanesExpanded(!planesExpanded)}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                             {planesExpanded ? (
                               <ChevronDown size={12} />
                             ) : (
@@ -1313,7 +1788,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                             )}
                             <span
                               style={{
-                                fontSize: '0.8rem',
+                                fontSize: '0.75rem',
                                 fontWeight: 600,
                                 color: 'var(--cad-color-text-secondary)',
                               }}
@@ -1324,14 +1799,14 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              planeFeatures.forEach((f) => {
-                                updateFeature(f.id, { visible: !arePlanesVisible });
+                              globalPlaneFeatures.forEach((f) => {
+                                updateFeature(f.id, { visible: !areGlobalPlanesVisible });
                               });
                             }}
                             style={{
                               background: 'transparent',
                               border: 'none',
-                              color: arePlanesVisible
+                              color: areGlobalPlanesVisible
                                 ? 'var(--cad-color-brand-main)'
                                 : 'var(--cad-color-text-muted)',
                               cursor: 'pointer',
@@ -1339,9 +1814,9 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                               alignItems: 'center',
                               padding: '2px',
                             }}
-                            title={arePlanesVisible ? 'Hide All Planes' : 'Show All Planes'}
+                            title={areGlobalPlanesVisible ? 'Hide All Planes' : 'Show All Planes'}
                           >
-                            {arePlanesVisible ? <Eye size={12} /> : <EyeOff size={12} />}
+                            {areGlobalPlanesVisible ? <Eye size={12} /> : <EyeOff size={12} />}
                           </button>
                         </div>
 
@@ -1350,17 +1825,17 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                             {renderDatumRow(
                               features.find((f) => f.id === 'datum_plane_xy'),
                               'XY Plane',
-                              '24px',
+                              '12px',
                             )}
                             {renderDatumRow(
                               features.find((f) => f.id === 'datum_plane_yz'),
                               'YZ Plane',
-                              '24px',
+                              '12px',
                             )}
                             {renderDatumRow(
                               features.find((f) => f.id === 'datum_plane_zx'),
                               'ZX Plane',
-                              '24px',
+                              '12px',
                             )}
                           </div>
                         )}
@@ -1368,8 +1843,8 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                     )}
                   </div>
 
-                  {/* Render Flat User Features */}
-                  {userFeatures.length === 0 ? (
+                  {/* Render Recursive Tree Root Nodes */}
+                  {rootUserFeatures.length === 0 ? (
                     <div
                       style={{
                         color: 'var(--cad-color-text-muted)',
@@ -1380,93 +1855,10 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                         borderRadius: 'var(--cad-radius-sm)',
                       }}
                     >
-                      No user features yet. Create sketches or parts to begin.
+                      No user features yet. Create sketches, bodies, or parts to begin.
                     </div>
                   ) : (
-                    userFeatures.map((feature) => {
-                      const isActive = feature.id === activeFeatureId;
-                      return (
-                        <div
-                          key={feature.id}
-                          onClick={() => setActiveFeature(feature.id)}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '4px 8px',
-                            background: isActive
-                              ? 'var(--cad-glass-bg-hover)'
-                              : 'var(--cad-color-surface-tertiary)',
-                            border: '1px solid',
-                            borderColor: isActive
-                              ? 'var(--cad-color-brand-main)'
-                              : 'var(--cad-glass-border-base)',
-                            borderRadius: 'var(--cad-radius-sm)',
-                            cursor: 'pointer',
-                            transition: 'all var(--cad-transition-fast)',
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontSize: '0.8rem',
-                              fontWeight: isActive ? 600 : 400,
-                              color: isActive
-                                ? 'var(--cad-color-text-primary)'
-                                : 'var(--cad-color-text-secondary)',
-                            }}
-                          >
-                            {feature.name}
-                            {feature.type === 'sketch' && feature.params.converged === false && (
-                              <span
-                                style={{
-                                  fontSize: '0.7rem',
-                                  color: '#ef4444',
-                                  fontWeight: 'bold',
-                                  marginLeft: '8px',
-                                }}
-                              >
-                                (Conflict)
-                              </span>
-                            )}
-                            {feature.type === 'sketch' &&
-                              feature.params.converged !== false &&
-                              feature.params.dof !== undefined && (
-                                <span
-                                  style={{
-                                    fontSize: '0.7rem',
-                                    color:
-                                      (feature.params.dof as number) === 0
-                                        ? '#22c55e'
-                                        : 'var(--cad-color-text-muted)',
-                                    fontWeight:
-                                      (feature.params.dof as number) === 0 ? 'bold' : 'normal',
-                                    marginLeft: '8px',
-                                  }}
-                                >
-                                  ({feature.params.dof as number} DOF)
-                                </span>
-                              )}
-                          </span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteFeature(feature.id);
-                            }}
-                            style={{
-                              background: 'transparent',
-                              border: 'none',
-                              color: 'var(--cad-color-brand-danger)',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                            }}
-                            title="Delete Feature"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      );
-                    })
+                    rootUserFeatures.map((feat) => renderFeatureNode(feat, 0))
                   )}
                 </div>
               );
@@ -1508,6 +1900,33 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                   fontSize: '0.7rem',
                   color: 'var(--cad-color-text-muted)',
                   fontWeight: 'bold',
+                }}
+              >
+                Containers
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                <button
+                  className="toolbar-btn"
+                  onClick={() => handleAddMockFeature('part')}
+                  style={{ border: '1px solid var(--cad-glass-border-base)', fontSize: '0.75rem' }}
+                >
+                  + Part
+                </button>
+                <button
+                  className="toolbar-btn"
+                  onClick={() => handleAddMockFeature('body')}
+                  style={{ border: '1px solid var(--cad-glass-border-base)', fontSize: '0.75rem' }}
+                >
+                  + Body
+                </button>
+              </div>
+
+              <div
+                style={{
+                  fontSize: '0.7rem',
+                  color: 'var(--cad-color-text-muted)',
+                  fontWeight: 'bold',
+                  marginTop: '4px',
                 }}
               >
                 Sketching & 3D Solids

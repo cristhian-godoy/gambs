@@ -361,9 +361,7 @@ export default function Toolbar({ onOpenSettings }: ToolbarProps): ReactNode {
   return (
     <header className="top-toolbar">
       <div className="toolbar-group">
-        <span className="toolbar-title">
-          <span>📐</span> gambs
-        </span>
+        <span className="toolbar-title">gambs</span>
         <div className="file-menu-container" style={{ position: 'relative' }}>
           <button
             className="toolbar-btn primary"
@@ -1092,9 +1090,6 @@ export default function Toolbar({ onOpenSettings }: ToolbarProps): ReactNode {
         )}
       </div>
       <div className="toolbar-group" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <span style={{ fontSize: '0.8rem', color: 'var(--cad-color-text-muted)' }}>
-          Mode: {activeTool.toUpperCase()}
-        </span>
         <button
           className="toolbar-btn"
           onClick={undo}

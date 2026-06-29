@@ -1471,24 +1471,52 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                 )}
             </span>
           </div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              deleteFeature(feature.id);
-            }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--cad-color-brand-danger)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              padding: '2px',
-            }}
-            title="Delete Feature"
-          >
-            <Trash2 size={12} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            {isPart && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const isVisible = feature.params.visible !== false;
+                  updateFeature(feature.id, { visible: !isVisible });
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color:
+                    feature.params.visible !== false
+                      ? 'var(--cad-color-brand-main)'
+                      : 'var(--cad-color-text-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '2px',
+                }}
+                title={feature.params.visible !== false ? 'Hide Part' : 'Show Part'}
+              >
+                {feature.params.visible !== false ? <Eye size={12} /> : <EyeOff size={12} />}
+              </button>
+            )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (window.confirm(`Are you sure you want to delete "${feature.name}"?`)) {
+                  deleteFeature(feature.id);
+                }
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--cad-color-brand-danger)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '2px',
+              }}
+              title="Delete Feature"
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
         </div>
 
         {/* Collapsible Children */}
@@ -1518,7 +1546,6 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
         }}
       >
         <div className="sidebar-header">
-          <span className="sidebar-title">Feature Tree</span>
           <FolderTree size={16} style={{ color: 'var(--cad-color-text-secondary)' }} />
         </div>
         <div

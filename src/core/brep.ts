@@ -1855,6 +1855,22 @@ export function mirrorSolid(
  * @returns Reconstructed B-Rep shape.
  */
 export function buildSolidFromFeatures(features: Feature[]): BrepShape {
+  const isFeatureVisible = (f: Feature): boolean => {
+    let current: Feature | undefined = f;
+    while (current) {
+      if (current.params.visible === false) {
+        return false;
+      }
+      if (current.parentId) {
+        current = features.find((x) => x.id === current!.parentId);
+      } else {
+        break;
+      }
+    }
+    return true;
+  };
+
+  const visibleFeatures = features.filter(isFeatureVisible);
   let solid: BrepShape = { vertices: [], edges: [], wires: [], faces: [], shells: [], solids: [] };
   let currentSketchGeoms: SketchGeometry[] = [];
   const sketchesMap = new Map<string, SketchGeometry[]>();
@@ -1862,7 +1878,7 @@ export function buildSolidFromFeatures(features: Feature[]): BrepShape {
   const shapesMap = new Map<string, BrepShape>();
 
   let activeSupportPlaneId: string | undefined = undefined;
-  for (const f of features) {
+  for (const f of visibleFeatures) {
     if (f.params.isDatum === true) continue;
     if (f.type === 'sketch') {
       const geoms = (f.params.geometries as SketchGeometry[]) || [];

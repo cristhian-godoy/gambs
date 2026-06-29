@@ -12,7 +12,7 @@
 
 /* Toolbar Panel */
 .top-toolbar {
-  height: 56px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: space-between;

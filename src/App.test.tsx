@@ -128,7 +128,10 @@ vi.mock('three', () => {
 vi.mock('three/examples/jsm/controls/OrbitControls.js', () => {
   return {
     OrbitControls: class {
+      target = { copy: vi.fn() };
       update = vi.fn();
+      addEventListener = vi.fn();
+      dispose = vi.fn();
     },
   };
 });

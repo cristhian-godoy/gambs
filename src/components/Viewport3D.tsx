@@ -229,6 +229,8 @@ export default function Viewport3D(): ReactNode {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gizmoCanvasRef = useRef<HTMLCanvasElement>(null);
+  const cameraPositionRef = useRef<THREE.Vector3 | null>(null);
+  const controlsTargetRef = useRef<THREE.Vector3 | null>(null);
 
   // Consume features to rebuild meshes when features change
   const {
@@ -256,7 +258,12 @@ export default function Viewport3D(): ReactNode {
     if (camera.up) {
       camera.up.set(0, 0, 1); // Z-up orientation
     }
-    camera.position.set(80, -120, 80);
+
+    if (cameraPositionRef.current) {
+      camera.position.copy(cameraPositionRef.current);
+    } else {
+      camera.position.set(80, -120, 80);
+    }
 
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     renderer.setSize(width, height);
@@ -264,8 +271,25 @@ export default function Viewport3D(): ReactNode {
 
     // 2. Controls
     const controls = new OrbitControls(camera, renderer.domElement);
+    if (controlsTargetRef.current) {
+      controls.target.copy(controlsTargetRef.current);
+    }
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
+    controls.update();
+
+    // Track camera and controls target changes
+    controls.addEventListener('change', () => {
+      if (!cameraPositionRef.current) {
+        cameraPositionRef.current = new THREE.Vector3();
+      }
+      cameraPositionRef.current.copy(camera.position);
+
+      if (!controlsTargetRef.current) {
+        controlsTargetRef.current = new THREE.Vector3();
+      }
+      controlsTargetRef.current.copy(controls.target);
+    });
 
     // Define capture handler outside to refer in cleanup
     let handlePointerCapture: ((e: PointerEvent | MouseEvent) => void) | undefined;
@@ -624,6 +648,7 @@ export default function Viewport3D(): ReactNode {
       }
       cancelAnimationFrame(animationFrameId);
       resizeObserver.disconnect();
+      controls.dispose();
       renderer.dispose();
       geometry?.dispose();
       material?.dispose();

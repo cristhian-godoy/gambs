@@ -34,6 +34,7 @@
   /* Glassmorphism options */
   --cad-glass-bg-base: rgb(20 24 33 / 75%);
   --cad-glass-bg-hover: rgb(30 36 48 / 85%);
+  --cad-glass-bg-dense: hsl(220deg 20% 12%);
   --cad-glass-border-base: rgb(255 255 255 / 8%);
   --cad-glass-border-focus: rgb(59 130 246 / 45%);
 
@@ -97,6 +98,7 @@ body {
   --cad-color-text-muted: hsl(220deg 15% 50%);
   --cad-glass-bg-base: rgb(255 255 255 / 75%);
   --cad-glass-bg-hover: rgb(240 244 250 / 85%);
+  --cad-glass-bg-dense: hsl(220deg 15% 90%);
   --cad-glass-border-base: rgb(0 0 0 / 8%);
   --cad-shadow-sm: 0 2px 8px rgb(0 0 0 / 10%);
   --cad-shadow-md: 0 8px 32px rgb(0 0 0 / 15%);

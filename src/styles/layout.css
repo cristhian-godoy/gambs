@@ -331,7 +331,7 @@
 .settings-modal-sidebar {
   width: 200px;
   border-right: 1px solid var(--cad-glass-border-base);
-  background: rgb(15 23 42 / 25%);
+  background: var(--cad-color-surface-base);
   padding: 12px 8px;
   display: flex;
   flex-direction: column;
@@ -415,7 +415,7 @@
 .settings-form-row input[type='number'],
 .settings-form-row select {
   padding: 8px 12px;
-  background: rgb(30 41 59 / 40%);
+  background: var(--cad-color-surface-base);
   border: 1px solid var(--cad-glass-border-base);
   border-radius: 6px;
   color: var(--cad-color-text-primary);
@@ -442,7 +442,7 @@
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  background: rgb(15 23 42 / 15%);
+  background: var(--cad-color-surface-base);
 }
 
 .settings-btn {

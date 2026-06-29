@@ -248,7 +248,7 @@ export default function Viewport3D(): ReactNode {
 
     // 1. Scene, Camera, Renderer
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color('#0f172a'); // sleek dark slate background
+    scene.background = new THREE.Color(settings.theme === 'light' ? '#f1f5f9' : '#0f172a');
 
     const width = container.clientWidth;
     const height = container.clientHeight;

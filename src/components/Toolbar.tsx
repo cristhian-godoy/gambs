@@ -83,6 +83,7 @@ export default function Toolbar({ onOpenSettings }: ToolbarProps): ReactNode {
   const [designMenuOpen, setDesignMenuOpen] = useState(false);
   const [modifyMenuOpen, setModifyMenuOpen] = useState(false);
   const [combineMenuOpen, setCombineMenuOpen] = useState(false);
+  const [constraintsMenuOpen, setConstraintsMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleOutsideClick = () => {
@@ -91,6 +92,7 @@ export default function Toolbar({ onOpenSettings }: ToolbarProps): ReactNode {
       setModifyMenuOpen(false);
       setCombineMenuOpen(false);
       setDrawMenuOpen(false);
+      setConstraintsMenuOpen(false);
     };
     window.addEventListener('click', handleOutsideClick);
     return () => {
@@ -982,66 +984,6 @@ export default function Toolbar({ onOpenSettings }: ToolbarProps): ReactNode {
             </button>
             <button
               className="toolbar-btn"
-              onClick={applyHorizontal}
-              disabled={!canHorizontal}
-              title="Horizontal Constraint (Select 1 line)"
-              style={{ opacity: canHorizontal ? 1 : 0.4 }}
-            >
-              <MoveRight size={16} />
-              Horiz
-            </button>
-            <button
-              className="toolbar-btn"
-              onClick={applyVertical}
-              disabled={!canVertical}
-              title="Vertical Constraint (Select 1 line)"
-              style={{ opacity: canVertical ? 1 : 0.4 }}
-            >
-              <MoveUp size={16} />
-              Vert
-            </button>
-            <button
-              className="toolbar-btn"
-              onClick={applyParallel}
-              disabled={!canParallel}
-              title="Parallel Constraint (Select 2 lines)"
-              style={{ opacity: canParallel ? 1 : 0.4 }}
-            >
-              <AlignJustify size={16} />
-              Parallel
-            </button>
-            <button
-              className="toolbar-btn"
-              onClick={applyPerpendicular}
-              disabled={!canPerpendicular}
-              title="Perpendicular Constraint (Select 2 lines)"
-              style={{ opacity: canPerpendicular ? 1 : 0.4 }}
-            >
-              <CornerDownRight size={16} />
-              Perp
-            </button>
-            <button
-              className="toolbar-btn"
-              onClick={applyTangent}
-              disabled={!canTangent}
-              title="Tangent Constraint (Select Line + Circle or 2 Circles)"
-              style={{ opacity: canTangent ? 1 : 0.4 }}
-            >
-              <CircleDot size={16} />
-              Tangent
-            </button>
-            <button
-              className="toolbar-btn"
-              onClick={applyFixed}
-              disabled={!canFixed}
-              title="Fixed Constraint (Select 1 point)"
-              style={{ opacity: canFixed ? 1 : 0.4 }}
-            >
-              <Lock size={16} />
-              Fix
-            </button>
-            <button
-              className="toolbar-btn"
               onClick={applyDistance}
               disabled={!canDistance}
               title="Distance/Length Constraint (Select 2 points or 1 line)"
@@ -1050,26 +992,142 @@ export default function Toolbar({ onOpenSettings }: ToolbarProps): ReactNode {
               <Ruler size={16} />
               Dimension
             </button>
-            <button
-              className="toolbar-btn"
-              onClick={applyRadius}
-              disabled={!canRadius}
-              title="Radius Constraint (Select 1 circle)"
-              style={{ opacity: canRadius ? 1 : 0.4 }}
-            >
-              <Circle size={16} />
-              Radius
-            </button>
-            <button
-              className="toolbar-btn"
-              onClick={applyAngle}
-              disabled={!canAngle}
-              title="Angle Constraint (Select 2 lines)"
-              style={{ opacity: canAngle ? 1 : 0.4 }}
-            >
-              <Compass size={16} />
-              Angle
-            </button>
+
+            <div className="constraints-menu-container" style={{ position: 'relative' }}>
+              <button
+                className="toolbar-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setConstraintsMenuOpen(!constraintsMenuOpen);
+                  setFileMenuOpen(false);
+                  setDesignMenuOpen(false);
+                  setModifyMenuOpen(false);
+                  setCombineMenuOpen(false);
+                  setDrawMenuOpen(false);
+                }}
+                title="Constraints Menu"
+              >
+                <Ruler size={16} /> More Constraints
+              </button>
+
+              {constraintsMenuOpen && (
+                <div
+                  className="dropdown-menu"
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    backgroundColor: 'var(--cad-color-surface-elevated)',
+                    border: '1px solid var(--cad-glass-border-base)',
+                    borderRadius: 'var(--cad-radius-md)',
+                    boxShadow: 'var(--cad-shadow-glow)',
+                    zIndex: 100,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minWidth: '180px',
+                    padding: '4px 0',
+                    marginTop: '4px',
+                  }}
+                >
+                  <button
+                    className="dropdown-item"
+                    onClick={() => {
+                      applyHorizontal();
+                      setConstraintsMenuOpen(false);
+                    }}
+                    disabled={!canHorizontal}
+                    title="Horizontal Constraint (Select 1 line)"
+                    style={{ opacity: canHorizontal ? 1 : 0.4 }}
+                  >
+                    <MoveRight size={14} /> Horizontal
+                  </button>
+                  <button
+                    className="dropdown-item"
+                    onClick={() => {
+                      applyVertical();
+                      setConstraintsMenuOpen(false);
+                    }}
+                    disabled={!canVertical}
+                    title="Vertical Constraint (Select 1 line)"
+                    style={{ opacity: canVertical ? 1 : 0.4 }}
+                  >
+                    <MoveUp size={14} /> Vertical
+                  </button>
+                  <button
+                    className="dropdown-item"
+                    onClick={() => {
+                      applyParallel();
+                      setConstraintsMenuOpen(false);
+                    }}
+                    disabled={!canParallel}
+                    title="Parallel Constraint (Select 2 lines)"
+                    style={{ opacity: canParallel ? 1 : 0.4 }}
+                  >
+                    <AlignJustify size={14} /> Parallel
+                  </button>
+                  <button
+                    className="dropdown-item"
+                    onClick={() => {
+                      applyPerpendicular();
+                      setConstraintsMenuOpen(false);
+                    }}
+                    disabled={!canPerpendicular}
+                    title="Perpendicular Constraint (Select 2 lines)"
+                    style={{ opacity: canPerpendicular ? 1 : 0.4 }}
+                  >
+                    <CornerDownRight size={14} /> Perpendicular
+                  </button>
+                  <button
+                    className="dropdown-item"
+                    onClick={() => {
+                      applyTangent();
+                      setConstraintsMenuOpen(false);
+                    }}
+                    disabled={!canTangent}
+                    title="Tangent Constraint (Select Line + Circle or 2 Circles)"
+                    style={{ opacity: canTangent ? 1 : 0.4 }}
+                  >
+                    <CircleDot size={14} /> Tangent
+                  </button>
+                  <button
+                    className="dropdown-item"
+                    onClick={() => {
+                      applyFixed();
+                      setConstraintsMenuOpen(false);
+                    }}
+                    disabled={!canFixed}
+                    title="Fixed Constraint (Select 1 point)"
+                    style={{ opacity: canFixed ? 1 : 0.4 }}
+                  >
+                    <Lock size={14} /> Fix
+                  </button>
+                  <button
+                    className="dropdown-item"
+                    onClick={() => {
+                      applyRadius();
+                      setConstraintsMenuOpen(false);
+                    }}
+                    disabled={!canRadius}
+                    title="Radius Constraint (Select 1 circle)"
+                    style={{ opacity: canRadius ? 1 : 0.4 }}
+                  >
+                    <Circle size={14} /> Radius
+                  </button>
+                  <button
+                    className="dropdown-item"
+                    onClick={() => {
+                      applyAngle();
+                      setConstraintsMenuOpen(false);
+                    }}
+                    disabled={!canAngle}
+                    title="Angle Constraint (Select 2 lines)"
+                    style={{ opacity: canAngle ? 1 : 0.4 }}
+                  >
+                    <Compass size={14} /> Angle
+                  </button>
+                </div>
+              )}
+            </div>
 
             <div className="toolbar-divider" />
             <button

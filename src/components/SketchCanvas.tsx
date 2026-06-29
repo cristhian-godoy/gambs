@@ -49,6 +49,7 @@ export default function SketchCanvas(): ReactNode {
     selectedElements,
     setSelectedElements,
     updateSketchConstraint,
+    settings,
   } = useCad();
   const { activeSketchId, features } = documentState;
 
@@ -177,7 +178,8 @@ export default function SketchCanvas(): ReactNode {
       const bottomWorld = -(height - offsetY) / zoom;
 
       // Start drawing grid lines
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+      ctx.strokeStyle =
+        settings.theme === 'light' ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.04)';
       ctx.lineWidth = 1 / zoom;
 
       const startX = Math.floor(leftWorld / gridSpacing) * gridSpacing;
@@ -391,15 +393,17 @@ export default function SketchCanvas(): ReactNode {
           text: string,
           x: number,
           y: number,
-          color = '#e2e8f0',
+          color = settings.theme === 'light' ? '#0f172a' : '#e2e8f0',
           size = 10,
         ) => {
           ctx.save();
           ctx.translate(x, y);
           ctx.scale(1 / zoom, -1 / zoom); // counteract inverted Y scaling
 
-          ctx.fillStyle = 'rgba(20, 20, 20, 0.85)';
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+          ctx.fillStyle =
+            settings.theme === 'light' ? 'rgba(241, 245, 249, 0.9)' : 'rgba(20, 20, 20, 0.85)';
+          ctx.strokeStyle =
+            settings.theme === 'light' ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.15)';
           ctx.lineWidth = 1;
 
           const textWidth = ctx.measureText(text).width;
@@ -1250,6 +1254,7 @@ export default function SketchCanvas(): ReactNode {
     setSelectedElements,
     updateSketchConstraint,
     setActiveTool,
+    settings.theme,
   ]);
 
   return (

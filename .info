@@ -16,3 +16,5 @@ tsconfig.node.json
 	TypeScript configuration for the Vite/Node environment.
 vite.config.ts
 	Vite environment and build configurations.
+.env.example
+	Example environment variables configuration.

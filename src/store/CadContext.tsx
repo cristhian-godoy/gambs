@@ -1,22 +1,36 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, type ReactNode, useContext, useReducer } from 'react';
+import { createContext, type ReactNode, useContext, useReducer, useState } from 'react';
 
 import { cadReducer, initialHistoryState } from './cadStore.ts';
-import { DocumentState, Feature, FeatureType } from './types.ts';
+import { DocumentState, Feature, FeatureType, SketchGeometry } from './types.ts';
 
+/**
+ * Types of active canvas interaction tools.
+ */
+export type ToolType = 'select' | 'line' | 'circle' | 'rect';
+
+/**
+ * Context properties and callbacks for CAD application state.
+ */
 interface CadContextType {
   documentState: DocumentState;
   canUndo: boolean;
   canRedo: boolean;
+  activeTool: ToolType;
+  setActiveTool: (tool: ToolType) => void;
   addFeature: (
     type: FeatureType,
     name: string,
     params?: Record<string, unknown>,
     dependencies?: string[],
-  ) => void;
+  ) => string;
   updateFeature: (id: string, params: Record<string, unknown>) => void;
   deleteFeature: (id: string) => void;
   setActiveFeature: (id: string | null) => void;
+  enterSketchEdit: (id: string) => void;
+  exitSketchEdit: () => void;
+  addSketchGeometry: (geometry: SketchGeometry) => void;
+  deleteSketchGeometry: (geometryId: string) => void;
   undo: () => void;
   redo: () => void;
 }
@@ -30,16 +44,18 @@ const CadContext = createContext<CadContextType | undefined>(undefined);
  */
 export function CadProvider({ children }: { children: ReactNode }): ReactNode {
   const [history, dispatch] = useReducer(cadReducer, initialHistoryState);
+  const [activeTool, setActiveTool] = useState<ToolType>('select');
 
   const addFeature = (
     type: FeatureType,
     name: string,
     params: Record<string, unknown> = {},
     dependencies: string[] = [],
-  ) => {
+  ): string => {
     const id = `${type}_${Date.now()}`;
     const feature: Feature = { id, type, name, params, dependencies };
     dispatch({ type: 'ADD_FEATURE', feature });
+    return id;
   };
 
   const updateFeature = (id: string, params: Record<string, unknown>) => {
@@ -54,6 +70,22 @@ export function CadProvider({ children }: { children: ReactNode }): ReactNode {
     dispatch({ type: 'SET_ACTIVE_FEATURE', id });
   };
 
+  const enterSketchEdit = (id: string) => {
+    dispatch({ type: 'ENTER_SKETCH_EDIT', id });
+  };
+
+  const exitSketchEdit = () => {
+    dispatch({ type: 'EXIT_SKETCH_EDIT' });
+  };
+
+  const addSketchGeometry = (geometry: SketchGeometry) => {
+    dispatch({ type: 'ADD_SKETCH_GEOMETRY', geometry });
+  };
+
+  const deleteSketchGeometry = (geometryId: string) => {
+    dispatch({ type: 'DELETE_SKETCH_GEOMETRY', geometryId });
+  };
+
   const undo = () => dispatch({ type: 'UNDO' });
   const redo = () => dispatch({ type: 'REDO' });
 
@@ -61,10 +93,16 @@ export function CadProvider({ children }: { children: ReactNode }): ReactNode {
     documentState: history.present,
     canUndo: history.past.length > 0,
     canRedo: history.future.length > 0,
+    activeTool,
+    setActiveTool,
     addFeature,
     updateFeature,
     deleteFeature,
     setActiveFeature,
+    enterSketchEdit,
+    exitSketchEdit,
+    addSketchGeometry,
+    deleteSketchGeometry,
     undo,
     redo,
   };

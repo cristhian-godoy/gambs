@@ -1,14 +1,14 @@
-import { Redo2, Save, Undo2 } from 'lucide-react';
+import { Circle, MousePointer, Redo2, Save, Slash, Square, Undo2 } from 'lucide-react';
 import { type ReactNode } from 'react';
 
 import { useCad } from '../store/CadContext.tsx';
 
 /**
- * Top Toolbar component containing global actions.
+ * Top Toolbar component containing global actions and drawing tools.
  * @returns The rendered Toolbar component.
  */
 export default function Toolbar(): ReactNode {
-  const { undo, redo, canUndo, canRedo } = useCad();
+  const { undo, redo, canUndo, canRedo, activeTool, setActiveTool } = useCad();
 
   return (
     <header className="top-toolbar">
@@ -20,6 +20,42 @@ export default function Toolbar(): ReactNode {
           <Save size={16} />
           Save
         </button>
+        <div className="toolbar-divider" />
+
+        {/* Drawing Tools Group */}
+        <button
+          className={`toolbar-btn ${activeTool === 'select' ? 'active' : ''}`}
+          onClick={() => setActiveTool('select')}
+          title="Select Tool (Esc)"
+        >
+          <MousePointer size={16} />
+          Select
+        </button>
+        <button
+          className={`toolbar-btn ${activeTool === 'line' ? 'active' : ''}`}
+          onClick={() => setActiveTool('line')}
+          title="Line Tool"
+        >
+          <Slash size={16} />
+          Line
+        </button>
+        <button
+          className={`toolbar-btn ${activeTool === 'circle' ? 'active' : ''}`}
+          onClick={() => setActiveTool('circle')}
+          title="Circle Tool"
+        >
+          <Circle size={16} />
+          Circle
+        </button>
+        <button
+          className={`toolbar-btn ${activeTool === 'rect' ? 'active' : ''}`}
+          onClick={() => setActiveTool('rect')}
+          title="Rectangle Tool"
+        >
+          <Square size={16} />
+          Rectangle
+        </button>
+
         <div className="toolbar-divider" />
         <button
           className="toolbar-btn"
@@ -43,7 +79,9 @@ export default function Toolbar(): ReactNode {
         </button>
       </div>
       <div className="toolbar-group">
-        <span style={{ fontSize: '0.8rem', color: 'var(--cad-color-text-muted)' }}>Ready</span>
+        <span style={{ fontSize: '0.8rem', color: 'var(--cad-color-text-muted)' }}>
+          Mode: {activeTool.toUpperCase()}
+        </span>
       </div>
     </header>
   );

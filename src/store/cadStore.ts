@@ -1,4 +1,4 @@
-import { DocumentState, Feature } from './types.ts';
+import { DocumentState, Feature, SketchGeometry } from './types.ts';
 
 /**
  * State representing the history of the document.
@@ -17,12 +17,17 @@ export type CadAction =
   | { type: 'UPDATE_FEATURE'; id: string; params: Record<string, unknown> }
   | { type: 'DELETE_FEATURE'; id: string }
   | { type: 'SET_ACTIVE_FEATURE'; id: string | null }
+  | { type: 'ENTER_SKETCH_EDIT'; id: string }
+  | { type: 'EXIT_SKETCH_EDIT' }
+  | { type: 'ADD_SKETCH_GEOMETRY'; geometry: SketchGeometry }
+  | { type: 'DELETE_SKETCH_GEOMETRY'; geometryId: string }
   | { type: 'UNDO' }
   | { type: 'REDO' };
 
 export const initialDocumentState: DocumentState = {
   features: [],
   activeFeatureId: null,
+  activeSketchId: null,
 };
 
 export const initialHistoryState: CadHistoryState = {
@@ -54,6 +59,7 @@ export function cadReducer(state: CadHistoryState, action: CadAction): CadHistor
       newFeatures.push(action.feature);
 
       const nextPresent: DocumentState = {
+        ...present,
         features: newFeatures,
         activeFeatureId: action.feature.id,
       };
@@ -121,8 +127,10 @@ export function cadReducer(state: CadHistoryState, action: CadAction): CadHistor
       }
 
       const nextPresent: DocumentState = {
+        ...present,
         features: nextFeatures,
         activeFeatureId: nextActiveId,
+        activeSketchId: present.activeSketchId === action.id ? null : present.activeSketchId,
       };
 
       return {
@@ -143,6 +151,88 @@ export function cadReducer(state: CadHistoryState, action: CadAction): CadHistor
           ...present,
           activeFeatureId: action.id,
         },
+      };
+    }
+
+    case 'ENTER_SKETCH_EDIT': {
+      return {
+        ...state,
+        present: {
+          ...present,
+          activeSketchId: action.id,
+        },
+      };
+    }
+
+    case 'EXIT_SKETCH_EDIT': {
+      return {
+        ...state,
+        present: {
+          ...present,
+          activeSketchId: null,
+        },
+      };
+    }
+
+    case 'ADD_SKETCH_GEOMETRY': {
+      if (!present.activeSketchId) {
+        return state;
+      }
+
+      const nextFeatures = present.features.map((f) => {
+        if (f.id === present.activeSketchId) {
+          const currentGeometries = (f.params.geometries as SketchGeometry[]) || [];
+          return {
+            ...f,
+            params: {
+              ...f.params,
+              geometries: [...currentGeometries, action.geometry],
+            },
+          };
+        }
+        return f;
+      });
+
+      const nextPresent: DocumentState = {
+        ...present,
+        features: nextFeatures,
+      };
+
+      return {
+        past: [...past, present],
+        present: nextPresent,
+        future: [],
+      };
+    }
+
+    case 'DELETE_SKETCH_GEOMETRY': {
+      if (!present.activeSketchId) {
+        return state;
+      }
+
+      const nextFeatures = present.features.map((f) => {
+        if (f.id === present.activeSketchId) {
+          const currentGeometries = (f.params.geometries as SketchGeometry[]) || [];
+          return {
+            ...f,
+            params: {
+              ...f.params,
+              geometries: currentGeometries.filter((g) => g.id !== action.geometryId),
+            },
+          };
+        }
+        return f;
+      });
+
+      const nextPresent: DocumentState = {
+        ...present,
+        features: nextFeatures,
+      };
+
+      return {
+        past: [...past, present],
+        present: nextPresent,
+        future: [],
       };
     }
 

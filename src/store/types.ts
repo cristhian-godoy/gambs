@@ -1,3 +1,5 @@
+import { Arc2D, Circle2D, Line2D, Rect2D } from '../core/geometry.ts';
+
 /**
  * Types of features supported in the CAD parametric model.
  */
@@ -22,6 +24,15 @@ export type FeatureType =
   | 'intersection';
 
 /**
+ * Discrimination structure for geometries in a sketch.
+ */
+export type SketchGeometry =
+  | ({ type: 'line' } & Line2D)
+  | ({ type: 'circle' } & Circle2D)
+  | ({ type: 'arc' } & Arc2D)
+  | ({ type: 'rect' } & Rect2D);
+
+/**
  * Representation of a single parametric CAD feature.
  */
 export interface Feature {
@@ -38,4 +49,5 @@ export interface Feature {
 export interface DocumentState {
   features: Feature[];
   activeFeatureId: string | null;
+  activeSketchId: string | null;
 }

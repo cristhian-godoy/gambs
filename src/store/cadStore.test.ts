@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { cadReducer, initialHistoryState } from './cadStore.ts';
-import { Feature } from './types.ts';
+import { Feature, SketchGeometry } from './types.ts';
 
 describe('cadReducer', () => {
   const mockFeature1: Feature = {
@@ -97,5 +97,31 @@ describe('cadReducer', () => {
     expect(state.present.features).toHaveLength(2); // f1 and f3 (f2 is truncated)
     expect(state.present.features[0].id).toBe('f1');
     expect(state.present.features[1].id).toBe('f3');
+  });
+
+  it('handles sketch editing and geometry actions', () => {
+    let state = cadReducer(initialHistoryState, { type: 'ADD_FEATURE', feature: mockFeature1 });
+
+    // Enter edit mode
+    state = cadReducer(state, { type: 'ENTER_SKETCH_EDIT', id: 'f1' });
+    expect(state.present.activeSketchId).toBe('f1');
+
+    // Add a line geometry
+    state = cadReducer(state, {
+      type: 'ADD_SKETCH_GEOMETRY',
+      geometry: { type: 'line', id: 'l1', start: { x: 0, y: 0 }, end: { x: 10, y: 10 } },
+    });
+    const geoms = state.present.features[0].params.geometries as SketchGeometry[];
+    expect(geoms).toHaveLength(1);
+    expect(geoms[0].type).toBe('line');
+    expect(geoms[0].id).toBe('l1');
+
+    // Delete geometry
+    state = cadReducer(state, { type: 'DELETE_SKETCH_GEOMETRY', geometryId: 'l1' });
+    expect(state.present.features[0].params.geometries).toHaveLength(0);
+
+    // Exit edit mode
+    state = cadReducer(state, { type: 'EXIT_SKETCH_EDIT' });
+    expect(state.present.activeSketchId).toBeNull();
   });
 });

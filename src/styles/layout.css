@@ -80,6 +80,13 @@
   box-shadow: var(--cad-shadow-glow);
 }
 
+.toolbar-btn.active {
+  background: var(--cad-glass-bg-hover);
+  border-color: var(--cad-color-brand-main);
+  color: var(--cad-color-brand-main);
+  box-shadow: var(--cad-shadow-glow);
+}
+
 .toolbar-divider {
   width: 1px;
   height: 20px;

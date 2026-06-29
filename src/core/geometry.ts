@@ -32,6 +32,15 @@ export interface Line2D {
 }
 
 /**
+ * 2D Rectangle represented by diagonal corner points start and end.
+ */
+export interface Rect2D {
+  id: string;
+  start: Point2D;
+  end: Point2D;
+}
+
+/**
  * 2D Circle represented by a center point and radius.
  */
 export interface Circle2D {
@@ -187,6 +196,24 @@ export function getCircleAABB(circle: Circle2D): BoundingBox2D {
 }
 
 /**
+ * Computes the Axis-Aligned Bounding Box (AABB) of a rectangle.
+ * @param rect The rectangle.
+ * @returns The bounding box.
+ */
+export function getRectAABB(rect: Rect2D): BoundingBox2D {
+  return {
+    min: {
+      x: Math.min(rect.start.x, rect.end.x),
+      y: Math.min(rect.start.y, rect.end.y),
+    },
+    max: {
+      x: Math.max(rect.start.x, rect.end.x),
+      y: Math.max(rect.start.y, rect.end.y),
+    },
+  };
+}
+
+/**
  * Computes the Axis-Aligned Bounding Box (AABB) of a circular arc.
  * @param arc The circular arc.
  * @returns The bounding box.
@@ -275,5 +302,20 @@ export function drawArc(ctx: CanvasRenderingContext2D, arc: Arc2D): void {
   // Canvas context arc handles CCW by default if counterclockwise is false (which it is)
   // But since we inverted the Y-axis on canvas (scale(zoom, -zoom)), standard positive angles go CCW.
   ctx.arc(arc.center.x, arc.center.y, arc.radius, arc.startAngle, arc.endAngle, false);
+  ctx.stroke();
+}
+
+/**
+ * Draws a rectangle on canvas.
+ * @param ctx The Canvas rendering context.
+ * @param rect The rectangle.
+ */
+export function drawRect(ctx: CanvasRenderingContext2D, rect: Rect2D): void {
+  ctx.beginPath();
+  // We need to draw drawing standard rectangles.
+  // In our inverted Y system, y direction is inverted.
+  const width = rect.end.x - rect.start.x;
+  const height = rect.end.y - rect.start.y;
+  ctx.rect(rect.start.x, rect.start.y, width, height);
   ctx.stroke();
 }

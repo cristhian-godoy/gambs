@@ -345,7 +345,7 @@ export default function Viewport3D(): ReactNode {
       scene.add(lineZ);
     }
 
-    const gridOffset = 2.0;
+    const gridOffset = 4.0;
     const actualGridSize = Math.max(1, settings.gridSize - gridOffset);
     const actualGridDivisions = Math.max(
       1,

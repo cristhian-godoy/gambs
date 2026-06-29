@@ -2,9 +2,11 @@ import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import {
   distance,
+  drawArc,
   drawCircle,
   drawLine,
   drawRect,
+  hitTestArc,
   hitTestCircle,
   hitTestLine,
   hitTestRect,
@@ -63,7 +65,7 @@ export default function SketchCanvas(): ReactNode {
   // Drawing state
   const isDrawingRef = useRef(false);
   const drawingStartRef = useRef<{ x: number; y: number } | null>(null);
-  const previewRef = useRef<SketchGeometry | null>(null);
+  const previewRef = useRef<SketchGeometry | SketchGeometry[] | null>(null);
 
   // Hover state
   const hoveredGeomIdRef = useRef<string | null>(null);
@@ -287,6 +289,7 @@ export default function SketchCanvas(): ReactNode {
           if (geom.type === 'line') drawLine(ctx, geom);
           else if (geom.type === 'circle') drawCircle(ctx, geom);
           else if (geom.type === 'rect') drawRect(ctx, geom);
+          else if (geom.type === 'arc') drawArc(ctx, geom);
 
           // Reset dash
           ctx.setLineDash([]);
@@ -310,6 +313,24 @@ export default function SketchCanvas(): ReactNode {
               geomId: geom.id,
               type: 'corner2',
               point: { x: geom.start.x, y: geom.end.y },
+            });
+          } else if (geom.type === 'arc') {
+            vertices.push({ geomId: geom.id, type: 'center', point: geom.center });
+            vertices.push({
+              geomId: geom.id,
+              type: 'start',
+              point: {
+                x: geom.center.x + geom.radius * Math.cos(geom.startAngle),
+                y: geom.center.y + geom.radius * Math.sin(geom.startAngle),
+              },
+            });
+            vertices.push({
+              geomId: geom.id,
+              type: 'end',
+              point: {
+                x: geom.center.x + geom.radius * Math.cos(geom.endAngle),
+                y: geom.center.y + geom.radius * Math.sin(geom.endAngle),
+              },
             });
           }
 
@@ -338,6 +359,27 @@ export default function SketchCanvas(): ReactNode {
               ctx.arc(vert.point.x, vert.point.y, 4 / zoom, 0, Math.PI * 2);
               ctx.fill();
             }
+          }
+        }
+
+        // Draw active drawing preview
+        if (previewRef.current) {
+          const drawSinglePreview = (g: SketchGeometry) => {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
+            ctx.lineWidth = 2 / zoom;
+            ctx.setLineDash([5 / zoom, 5 / zoom]);
+            if (g.type === 'line') drawLine(ctx, g);
+            else if (g.type === 'circle') drawCircle(ctx, g);
+            else if (g.type === 'rect') drawRect(ctx, g);
+            else if (g.type === 'arc') drawArc(ctx, g);
+            ctx.restore();
+          };
+
+          if (Array.isArray(previewRef.current)) {
+            previewRef.current.forEach(drawSinglePreview);
+          } else {
+            drawSinglePreview(previewRef.current as SketchGeometry);
           }
         }
 
@@ -642,6 +684,7 @@ export default function SketchCanvas(): ReactNode {
             isDrawingRef.current = false;
             drawingStartRef.current = null;
             previewRef.current = null;
+            setActiveTool('select');
           } else if (currentTool === 'rect') {
             addSketchGeometry({
               type: 'rect',
@@ -652,6 +695,101 @@ export default function SketchCanvas(): ReactNode {
             isDrawingRef.current = false;
             drawingStartRef.current = null;
             previewRef.current = null;
+            setActiveTool('select');
+          } else if (currentTool === 'arc') {
+            const dx = worldPos.x - start.x;
+            const dy = worldPos.y - start.y;
+            const radius = Math.sqrt(dx * dx + dy * dy);
+            const startAngle = Math.atan2(worldPos.y - start.y, worldPos.x - start.x);
+            addSketchGeometry({
+              type: 'arc',
+              id,
+              center: start,
+              radius,
+              startAngle,
+              endAngle: startAngle + Math.PI,
+            });
+            isDrawingRef.current = false;
+            drawingStartRef.current = null;
+            previewRef.current = null;
+            setActiveTool('select');
+          } else if (currentTool === 'triangle') {
+            const bx1 = start.x;
+            const by1 = worldPos.y;
+            const bx2 = worldPos.x;
+            const by2 = worldPos.y;
+            const px = (start.x + worldPos.x) / 2;
+            const py = start.y;
+            const t = Date.now();
+
+            addSketchGeometry({
+              type: 'line',
+              id: `line_tri1_${t}`,
+              start: { x: bx1, y: by1 },
+              end: { x: bx2, y: by2 },
+            });
+            addSketchGeometry({
+              type: 'line',
+              id: `line_tri2_${t}`,
+              start: { x: bx2, y: by2 },
+              end: { x: px, y: py },
+            });
+            addSketchGeometry({
+              type: 'line',
+              id: `line_tri3_${t}`,
+              start: { x: px, y: py },
+              end: { x: bx1, y: by1 },
+            });
+
+            isDrawingRef.current = false;
+            drawingStartRef.current = null;
+            previewRef.current = null;
+            setActiveTool('select');
+          } else if (currentTool === 'slot') {
+            const h = Math.abs(worldPos.y - start.y);
+            const radius = h / 2;
+            if (radius > 1) {
+              const x1 = Math.min(start.x, worldPos.x);
+              const x2 = Math.max(start.x, worldPos.x);
+              const y1 = start.y;
+              const y2 = worldPos.y;
+              const cy = (y1 + y2) / 2;
+              const t = Date.now();
+
+              addSketchGeometry({
+                type: 'line',
+                id: `line_slot1_${t}`,
+                start: { x: x1 + radius, y: y1 },
+                end: { x: x2 - radius, y: y1 },
+              });
+              addSketchGeometry({
+                type: 'line',
+                id: `line_slot2_${t}`,
+                start: { x: x1 + radius, y: y2 },
+                end: { x: x2 - radius, y: y2 },
+              });
+              addSketchGeometry({
+                type: 'arc',
+                id: `arc_slot1_${t}`,
+                center: { x: x1 + radius, y: cy },
+                radius,
+                startAngle: Math.PI / 2,
+                endAngle: (Math.PI * 3) / 2,
+              });
+              addSketchGeometry({
+                type: 'arc',
+                id: `arc_slot2_${t}`,
+                center: { x: x2 - radius, y: cy },
+                radius,
+                startAngle: -Math.PI / 2,
+                endAngle: Math.PI / 2,
+              });
+            }
+
+            isDrawingRef.current = false;
+            drawingStartRef.current = null;
+            previewRef.current = null;
+            setActiveTool('select');
           }
 
           requestRedraw();
@@ -721,6 +859,33 @@ export default function SketchCanvas(): ReactNode {
                     : startCorner,
                 end: vType === 'end' ? { x: endCorner.x + dx, y: endCorner.y + dy } : endCorner,
               };
+            } else if (geom.type === 'arc') {
+              if (vType === 'center') {
+                return {
+                  ...geom,
+                  center: { x: geom.center.x + dx, y: geom.center.y + dy },
+                };
+              }
+              const currentX =
+                vType === 'start'
+                  ? geom.center.x + geom.radius * Math.cos(geom.startAngle)
+                  : geom.center.x + geom.radius * Math.cos(geom.endAngle);
+              const currentY =
+                vType === 'start'
+                  ? geom.center.y + geom.radius * Math.sin(geom.startAngle)
+                  : geom.center.y + geom.radius * Math.sin(geom.endAngle);
+              const newPt = {
+                x: currentX + dx,
+                y: currentY + dy,
+              };
+              const newRadius = distance(newPt, geom.center);
+              const newAngle = Math.atan2(newPt.y - geom.center.y, newPt.x - geom.center.x);
+              return {
+                ...geom,
+                radius: newRadius,
+                startAngle: vType === 'start' ? newAngle : geom.startAngle,
+                endAngle: vType === 'end' ? newAngle : geom.endAngle,
+              };
             }
           }
 
@@ -741,6 +906,11 @@ export default function SketchCanvas(): ReactNode {
                 ...geom,
                 start: { x: geom.start.x + dx, y: geom.start.y + dy },
                 end: { x: geom.end.x + dx, y: geom.end.y + dy },
+              };
+            } else if (geom.type === 'arc') {
+              return {
+                ...geom,
+                center: { x: geom.center.x + dx, y: geom.center.y + dy },
               };
             }
           }
@@ -782,6 +952,85 @@ export default function SketchCanvas(): ReactNode {
             start,
             end: worldPos,
           };
+        } else if (currentTool === 'arc') {
+          const dx = worldPos.x - start.x;
+          const dy = worldPos.y - start.y;
+          const radius = Math.sqrt(dx * dx + dy * dy);
+          const startAngle = Math.atan2(worldPos.y - start.y, worldPos.x - start.x);
+          previewRef.current = {
+            type: 'arc',
+            id: previewId,
+            center: start,
+            radius,
+            startAngle,
+            endAngle: startAngle + Math.PI,
+          };
+        } else if (currentTool === 'triangle') {
+          const bx1 = start.x;
+          const by1 = worldPos.y;
+          const bx2 = worldPos.x;
+          const by2 = worldPos.y;
+          const px = (start.x + worldPos.x) / 2;
+          const py = start.y;
+          previewRef.current = [
+            {
+              type: 'line',
+              id: `${previewId}_1`,
+              start: { x: bx1, y: by1 },
+              end: { x: bx2, y: by2 },
+            },
+            {
+              type: 'line',
+              id: `${previewId}_2`,
+              start: { x: bx2, y: by2 },
+              end: { x: px, y: py },
+            },
+            {
+              type: 'line',
+              id: `${previewId}_3`,
+              start: { x: px, y: py },
+              end: { x: bx1, y: by1 },
+            },
+          ];
+        } else if (currentTool === 'slot') {
+          const h = Math.abs(worldPos.y - start.y);
+          const radius = h / 2;
+          const x1 = Math.min(start.x, worldPos.x);
+          const x2 = Math.max(start.x, worldPos.x);
+          const y1 = start.y;
+          const y2 = worldPos.y;
+          const cy = (y1 + y2) / 2;
+
+          previewRef.current = [
+            {
+              type: 'line',
+              id: `${previewId}_1`,
+              start: { x: x1 + radius, y: y1 },
+              end: { x: x2 - radius, y: y1 },
+            },
+            {
+              type: 'line',
+              id: `${previewId}_2`,
+              start: { x: x1 + radius, y: y2 },
+              end: { x: x2 - radius, y: y2 },
+            },
+            {
+              type: 'arc',
+              id: `${previewId}_3`,
+              center: { x: x1 + radius, y: cy },
+              radius,
+              startAngle: Math.PI / 2,
+              endAngle: (Math.PI * 3) / 2,
+            },
+            {
+              type: 'arc',
+              id: `${previewId}_4`,
+              center: { x: x2 - radius, y: cy },
+              radius,
+              startAngle: -Math.PI / 2,
+              endAngle: Math.PI / 2,
+            },
+          ];
         }
         requestRedraw();
         return;
@@ -833,14 +1082,41 @@ export default function SketchCanvas(): ReactNode {
                 hitVertex = { geomId: geom.id, type: 'end', point: geom.end };
                 break;
               }
+            } else if (geom.type === 'arc') {
+              if (distance(worldPos, geom.center) <= toleranceInWorld) {
+                hitVertex = { geomId: geom.id, type: 'center', point: geom.center };
+                break;
+              }
+              const startPt = {
+                x: geom.center.x + geom.radius * Math.cos(geom.startAngle),
+                y: geom.center.y + geom.radius * Math.sin(geom.startAngle),
+              };
+              if (distance(worldPos, startPt) <= toleranceInWorld) {
+                hitVertex = { geomId: geom.id, type: 'start', point: startPt };
+                break;
+              }
+              const endPt = {
+                x: geom.center.x + geom.radius * Math.cos(geom.endAngle),
+                y: geom.center.y + geom.radius * Math.sin(geom.endAngle),
+              };
+              if (distance(worldPos, endPt) <= toleranceInWorld) {
+                hitVertex = { geomId: geom.id, type: 'end', point: endPt };
+                break;
+              }
             }
+          }
+        }
 
+        if (!hitVertex && !hitGeomId) {
+          for (const geom of localGeometriesRef.current) {
             // Check boundaries
             if (geom.type === 'line' && hitTestLine(worldPos, geom, toleranceInWorld)) {
               hitGeomId = geom.id;
             } else if (geom.type === 'circle' && hitTestCircle(worldPos, geom, toleranceInWorld)) {
               hitGeomId = geom.id;
             } else if (geom.type === 'rect' && hitTestRect(worldPos, geom, toleranceInWorld)) {
+              hitGeomId = geom.id;
+            } else if (geom.type === 'arc' && hitTestArc(worldPos, geom, toleranceInWorld)) {
               hitGeomId = geom.id;
             }
           }

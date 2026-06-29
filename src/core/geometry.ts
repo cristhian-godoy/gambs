@@ -379,3 +379,27 @@ export function drawRect(ctx: CanvasRenderingContext2D, rect: Rect2D): void {
   ctx.rect(rect.start.x, rect.start.y, width, height);
   ctx.stroke();
 }
+
+/**
+ * Checks if a point lies on a 2D circular arc within a specified tolerance.
+ */
+export function hitTestArc(point: Point2D, arc: Arc2D, tolerance: number): boolean {
+  const dx = point.x - arc.center.x;
+  const dy = point.y - arc.center.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (Math.abs(dist - arc.radius) > tolerance) return false;
+
+  let angle = Math.atan2(dy, dx);
+  if (angle < 0) angle += Math.PI * 2;
+
+  let start = arc.startAngle % (Math.PI * 2);
+  if (start < 0) start += Math.PI * 2;
+  let end = arc.endAngle % (Math.PI * 2);
+  if (end < 0) end += Math.PI * 2;
+
+  if (start <= end) {
+    return angle >= start && angle <= end;
+  } else {
+    return angle >= start || angle <= end;
+  }
+}

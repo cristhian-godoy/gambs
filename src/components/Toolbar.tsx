@@ -19,6 +19,7 @@ import {
   Slash,
   Square,
   ToggleLeft,
+  Triangle,
   Undo2,
   Upload,
 } from 'lucide-react';
@@ -49,6 +50,8 @@ export default function Toolbar(): ReactNode {
     addFeature,
     resetDocument,
     loadDocument,
+    selectionFilter,
+    setSelectionFilter,
   } = useCad();
 
   const { activeSketchId, features } = documentState;
@@ -56,6 +59,7 @@ export default function Toolbar(): ReactNode {
   const geometries = (activeSketch?.params.geometries as SketchGeometry[]) || [];
 
   const [fileMenuOpen, setFileMenuOpen] = useState(false);
+  const [drawMenuOpen, setDrawMenuOpen] = useState(false);
 
   const handleSaveProject = () => {
     const dataStr = JSON.stringify(documentState, null, 2);
@@ -266,6 +270,28 @@ export default function Toolbar(): ReactNode {
     }
   };
 
+  const getDrawingToolLabel = () => {
+    switch (activeTool) {
+      case 'line':
+        return { text: 'Line', icon: <Slash size={16} /> };
+      case 'circle':
+        return { text: 'Circle', icon: <Circle size={16} /> };
+      case 'rect':
+        return { text: 'Rectangle', icon: <Square size={16} /> };
+      case 'arc':
+        return { text: 'Arc', icon: <Compass size={16} /> };
+      case 'triangle':
+        return { text: 'Triangle', icon: <Triangle size={16} /> };
+      case 'slot':
+        return { text: 'Slot', icon: <ToggleLeft size={16} /> };
+      default:
+        return { text: 'Draw', icon: <Slash size={16} /> };
+    }
+  };
+
+  const isDrawActive = ['line', 'circle', 'rect', 'arc', 'triangle', 'slot'].includes(activeTool);
+  const currentDrawTool = getDrawingToolLabel();
+
   return (
     <header className="top-toolbar">
       <div className="toolbar-group">
@@ -400,36 +426,180 @@ export default function Toolbar(): ReactNode {
         {/* Drawing Tools Group */}
         <button
           className={`toolbar-btn ${activeTool === 'select' ? 'active' : ''}`}
-          onClick={() => setActiveTool('select')}
+          onClick={() => {
+            setActiveTool('select');
+            setDrawMenuOpen(false);
+          }}
           title="Select Tool (Esc)"
         >
           <MousePointer size={16} />
           Select
         </button>
-        <button
-          className={`toolbar-btn ${activeTool === 'line' ? 'active' : ''}`}
-          onClick={() => setActiveTool('line')}
-          title="Line Tool"
+
+        {/* Selection Filter group */}
+        <div
+          className="filter-group"
+          style={{
+            display: 'flex',
+            gap: '2px',
+            alignItems: 'center',
+            backgroundColor: 'var(--cad-glass-bg-base)',
+            padding: '2px',
+            borderRadius: 'var(--cad-radius-md)',
+            border: '1px solid var(--cad-glass-border-base)',
+            marginLeft: '4px',
+            marginRight: '4px',
+          }}
         >
-          <Slash size={16} />
-          Line
-        </button>
-        <button
-          className={`toolbar-btn ${activeTool === 'circle' ? 'active' : ''}`}
-          onClick={() => setActiveTool('circle')}
-          title="Circle Tool"
-        >
-          <Circle size={16} />
-          Circle
-        </button>
-        <button
-          className={`toolbar-btn ${activeTool === 'rect' ? 'active' : ''}`}
-          onClick={() => setActiveTool('rect')}
-          title="Rectangle Tool"
-        >
-          <Square size={16} />
-          Rectangle
-        </button>
+          <button
+            className={`toolbar-btn ${selectionFilter === 'all' ? 'active' : ''}`}
+            onClick={() => setSelectionFilter('all')}
+            style={{
+              padding: '4px 8px',
+              fontSize: '0.75rem',
+              height: '24px',
+              border: 'none',
+              borderRadius: 'var(--cad-radius-sm)',
+            }}
+            title="Filter: All"
+          >
+            All
+          </button>
+          <button
+            className={`toolbar-btn ${selectionFilter === 'vertices' ? 'active' : ''}`}
+            onClick={() => setSelectionFilter('vertices')}
+            style={{
+              padding: '4px 8px',
+              fontSize: '0.75rem',
+              height: '24px',
+              border: 'none',
+              borderRadius: 'var(--cad-radius-sm)',
+            }}
+            title="Filter: Vertices"
+          >
+            Vertices
+          </button>
+          <button
+            className={`toolbar-btn ${selectionFilter === 'edges' ? 'active' : ''}`}
+            onClick={() => setSelectionFilter('edges')}
+            style={{
+              padding: '4px 8px',
+              fontSize: '0.75rem',
+              height: '24px',
+              border: 'none',
+              borderRadius: 'var(--cad-radius-sm)',
+            }}
+            title="Filter: Edges"
+          >
+            Edges
+          </button>
+          <button
+            className={`toolbar-btn ${selectionFilter === 'faces' ? 'active' : ''}`}
+            onClick={() => setSelectionFilter('faces')}
+            style={{
+              padding: '4px 8px',
+              fontSize: '0.75rem',
+              height: '24px',
+              border: 'none',
+              borderRadius: 'var(--cad-radius-sm)',
+            }}
+            title="Filter: Faces"
+          >
+            Faces
+          </button>
+        </div>
+
+        <div className="draw-menu-container" style={{ position: 'relative' }}>
+          <button
+            className={`toolbar-btn ${isDrawActive ? 'active' : ''}`}
+            onClick={() => setDrawMenuOpen(!drawMenuOpen)}
+            title="Draw Menu"
+          >
+            {currentDrawTool.icon}
+            {currentDrawTool.text}
+          </button>
+
+          {drawMenuOpen && (
+            <div
+              className="dropdown-menu"
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                backgroundColor: 'var(--cad-color-surface-elevated)',
+                border: '1px solid var(--cad-glass-border-base)',
+                borderRadius: 'var(--cad-radius-md)',
+                boxShadow: 'var(--cad-shadow-glow)',
+                zIndex: 100,
+                display: 'flex',
+                flexDirection: 'column',
+                minWidth: '160px',
+                padding: '4px 0',
+                marginTop: '4px',
+              }}
+            >
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  setActiveTool('line');
+                  setDrawMenuOpen(false);
+                }}
+              >
+                <Slash size={14} /> Line
+              </button>
+
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  setActiveTool('circle');
+                  setDrawMenuOpen(false);
+                }}
+              >
+                <Circle size={14} /> Circle
+              </button>
+
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  setActiveTool('rect');
+                  setDrawMenuOpen(false);
+                }}
+              >
+                <Square size={14} /> Rectangle
+              </button>
+
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  setActiveTool('arc');
+                  setDrawMenuOpen(false);
+                }}
+              >
+                <Compass size={14} /> Arc
+              </button>
+
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  setActiveTool('triangle');
+                  setDrawMenuOpen(false);
+                }}
+              >
+                <Triangle size={14} /> Triangle
+              </button>
+
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  setActiveTool('slot');
+                  setDrawMenuOpen(false);
+                }}
+              >
+                <ToggleLeft size={14} /> Slot
+              </button>
+            </div>
+          )}
+        </div>
 
         <div className="toolbar-divider" />
 

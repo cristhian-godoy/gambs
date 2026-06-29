@@ -8,7 +8,7 @@ import type { DocumentState, Feature, FeatureType, SketchGeometry } from './type
 /**
  * Types of active canvas interaction tools.
  */
-export type ToolType = 'select' | 'line' | 'circle' | 'rect';
+export type ToolType = 'select' | 'line' | 'circle' | 'rect' | 'arc' | 'triangle' | 'slot';
 
 /**
  * Represents a selected sketch element (geometry or specific vertex).
@@ -50,6 +50,8 @@ interface CadContextType {
   redo: () => void;
   resetDocument: () => void;
   loadDocument: (doc: DocumentState) => void;
+  selectionFilter: 'vertices' | 'edges' | 'faces' | 'all';
+  setSelectionFilter: (filter: 'vertices' | 'edges' | 'faces' | 'all') => void;
 }
 
 const CadContext = createContext<CadContextType | undefined>(undefined);
@@ -63,6 +65,9 @@ export function CadProvider({ children }: { children: ReactNode }): ReactNode {
   const [history, dispatch] = useReducer(cadReducer, initialHistoryState);
   const [activeTool, setActiveTool] = useState<ToolType>('select');
   const [selectedElements, setSelectedElements] = useState<SelectedElement[]>([]);
+  const [selectionFilter, setSelectionFilter] = useState<'vertices' | 'edges' | 'faces' | 'all'>(
+    'all',
+  );
 
   const addFeature = (
     type: FeatureType,
@@ -220,6 +225,8 @@ export function CadProvider({ children }: { children: ReactNode }): ReactNode {
     redo,
     resetDocument,
     loadDocument,
+    selectionFilter,
+    setSelectionFilter,
   };
 
   return <CadContext.Provider value={value}>{children}</CadContext.Provider>;

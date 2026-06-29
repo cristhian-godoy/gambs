@@ -4,8 +4,6 @@ import {
   CircleDot,
   Compass,
   CornerDownRight,
-  Download,
-  FolderInput,
   Link as LinkIcon,
   Lock,
   MousePointer,
@@ -13,13 +11,12 @@ import {
   MoveUp,
   Redo2,
   Ruler,
-  Save,
   Slash,
   Square,
   ToggleLeft,
   Undo2,
 } from 'lucide-react';
-import { type ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 
 import { buildSolidFromFeatures } from '../core/brep.ts';
 import { type SelectedElement, useCad } from '../store/CadContext.tsx';
@@ -44,11 +41,43 @@ export default function Toolbar(): ReactNode {
     addSketchConstraint,
     documentState,
     addFeature,
+    resetDocument,
+    loadDocument,
   } = useCad();
 
   const { activeSketchId, features } = documentState;
   const activeSketch = features.find((f) => f.id === activeSketchId);
   const geometries = (activeSketch?.params.geometries as SketchGeometry[]) || [];
+
+  const [fileMenuOpen, setFileMenuOpen] = useState(false);
+
+  const handleSaveProject = () => {
+    const dataStr = JSON.stringify(documentState, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', 'project.json');
+    linkElement.click();
+  };
+
+  const handleOpenProject = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const doc = JSON.parse(event.target?.result as string);
+        if (doc && Array.isArray(doc.features)) {
+          loadDocument(doc);
+        }
+      } catch (err) {
+        console.error('Failed to parse project file', err);
+      }
+    };
+    reader.readAsText(file);
+    setFileMenuOpen(false);
+  };
 
   const handleExportStl = () => {
     const solid = buildSolidFromFeatures(features);
@@ -237,36 +266,129 @@ export default function Toolbar(): ReactNode {
         <span className="toolbar-title">
           <span>📐</span> SPA CAD
         </span>
-        <button className="toolbar-btn primary" title="Save Project">
-          <Save size={16} />
-          Save
-        </button>
-        <button className="toolbar-btn" onClick={handleExportStl} title="Export STL">
-          <Download size={16} />
-          STL
-        </button>
-        <button className="toolbar-btn" onClick={handleExportObj} title="Export OBJ">
-          <Download size={16} />
-          OBJ
-        </button>
-        <button className="toolbar-btn" onClick={handleExportStep} title="Export STEP">
-          <Download size={16} />
-          STEP
-        </button>
-        <label
-          className="toolbar-btn"
-          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-          title="Import STEP"
-        >
-          <FolderInput size={16} />
-          Import
-          <input
-            type="file"
-            accept=".stp,.step"
-            onChange={handleImportStep}
-            style={{ display: 'none' }}
-          />
-        </label>
+        <div className="file-menu-container" style={{ position: 'relative' }}>
+          <button
+            className="toolbar-btn primary"
+            onClick={() => setFileMenuOpen(!fileMenuOpen)}
+            title="File Menu"
+          >
+            <span>📁</span> File
+          </button>
+
+          {fileMenuOpen && (
+            <div
+              className="dropdown-menu"
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                backgroundColor: 'var(--cad-color-surface-elevated)',
+                border: '1px solid var(--cad-glass-border-base)',
+                borderRadius: 'var(--cad-radius-md)',
+                boxShadow: 'var(--cad-shadow-glow)',
+                zIndex: 100,
+                display: 'flex',
+                flexDirection: 'column',
+                minWidth: '180px',
+                padding: '4px 0',
+                marginTop: '4px',
+              }}
+            >
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  resetDocument();
+                  setFileMenuOpen(false);
+                }}
+              >
+                <span>➕</span> New Project
+              </button>
+
+              <label className="dropdown-item">
+                <span>📂</span> Open Project
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleOpenProject}
+                  style={{ display: 'none' }}
+                />
+              </label>
+
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  handleSaveProject();
+                  setFileMenuOpen(false);
+                }}
+              >
+                <span>💾</span> Save Project
+              </button>
+
+              <div
+                style={{
+                  height: '1px',
+                  backgroundColor: 'var(--cad-glass-border-base)',
+                  margin: '4px 0',
+                }}
+              />
+
+              <div
+                style={{
+                  padding: '4px 12px',
+                  fontSize: '0.75rem',
+                  color: 'var(--cad-color-text-muted)',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                }}
+              >
+                Export / Import
+              </div>
+
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  handleExportStl();
+                  setFileMenuOpen(false);
+                }}
+              >
+                <span>📤</span> Export STL
+              </button>
+
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  handleExportObj();
+                  setFileMenuOpen(false);
+                }}
+              >
+                <span>📤</span> Export OBJ
+              </button>
+
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  handleExportStep();
+                  setFileMenuOpen(false);
+                }}
+              >
+                <span>📤</span> Export STEP
+              </button>
+
+              <label className="dropdown-item">
+                <span>📥</span> Import STEP
+                <input
+                  type="file"
+                  accept=".stp,.step"
+                  onChange={(e) => {
+                    handleImportStep(e);
+                    setFileMenuOpen(false);
+                  }}
+                  style={{ display: 'none' }}
+                />
+              </label>
+            </div>
+          )}
+        </div>
         <div className="toolbar-divider" />
 
         {/* Drawing Tools Group */}

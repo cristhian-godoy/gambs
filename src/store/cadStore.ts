@@ -23,7 +23,9 @@ export type CadAction =
   | { type: 'ADD_SKETCH_GEOMETRY'; geometry: SketchGeometry }
   | { type: 'DELETE_SKETCH_GEOMETRY'; geometryId: string }
   | { type: 'UNDO' }
-  | { type: 'REDO' };
+  | { type: 'REDO' }
+  | { type: 'RESET_DOCUMENT' }
+  | { type: 'LOAD_DOCUMENT'; document: DocumentState };
 
 export const initialDocumentState: DocumentState = {
   features: [],
@@ -302,6 +304,22 @@ export function cadReducer(state: CadHistoryState, action: CadAction): CadHistor
         past: [...past, present],
         present: next,
         future: newFuture,
+      };
+    }
+
+    case 'RESET_DOCUMENT': {
+      return {
+        past: [...past, present],
+        present: initialDocumentState,
+        future: [],
+      };
+    }
+
+    case 'LOAD_DOCUMENT': {
+      return {
+        past: [...past, present],
+        present: action.document,
+        future: [],
       };
     }
 

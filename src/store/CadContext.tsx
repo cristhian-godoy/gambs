@@ -48,6 +48,8 @@ interface CadContextType {
   deleteSketchConstraint: (constraintId: string) => void;
   undo: () => void;
   redo: () => void;
+  resetDocument: () => void;
+  loadDocument: (doc: DocumentState) => void;
 }
 
 const CadContext = createContext<CadContextType | undefined>(undefined);
@@ -191,6 +193,8 @@ export function CadProvider({ children }: { children: ReactNode }): ReactNode {
 
   const undo = () => dispatch({ type: 'UNDO' });
   const redo = () => dispatch({ type: 'REDO' });
+  const resetDocument = () => dispatch({ type: 'RESET_DOCUMENT' });
+  const loadDocument = (doc: DocumentState) => dispatch({ type: 'LOAD_DOCUMENT', document: doc });
 
   const value: CadContextType = {
     documentState: history.present,
@@ -214,6 +218,8 @@ export function CadProvider({ children }: { children: ReactNode }): ReactNode {
     deleteSketchConstraint,
     undo,
     redo,
+    resetDocument,
+    loadDocument,
   };
 
   return <CadContext.Provider value={value}>{children}</CadContext.Provider>;

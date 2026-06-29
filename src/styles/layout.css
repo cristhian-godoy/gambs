@@ -234,3 +234,26 @@
   height: 100%;
   background-color: rgb(34 197 94 / 30%); /* Y-axis Green */
 }
+
+/* Dropdown Menu Item */
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  color: var(--cad-color-text-primary);
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition:
+    background-color var(--cad-transition-fast) ease,
+    color var(--cad-transition-fast) ease;
+}
+
+.dropdown-item:hover {
+  background-color: var(--cad-glass-bg-hover);
+  color: var(--cad-color-brand-main);
+}

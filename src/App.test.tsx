@@ -115,6 +115,12 @@ vi.mock('three', () => {
     },
     Color: class {},
     DoubleSide: 2,
+    MOUSE: {
+      NONE: 0,
+      ROTATE: 1,
+      DOLLY: 2,
+      PAN: 3,
+    },
   };
 });
 

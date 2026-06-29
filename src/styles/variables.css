@@ -83,3 +83,21 @@ body {
   height: 100vh;
   width: 100vw;
 }
+
+/* Light Theme Variables */
+.light-theme {
+  color-scheme: light;
+
+  --cad-color-brand-main: hsl(217deg 91% 55%);
+  --cad-color-surface-base: hsl(220deg 20% 95%);
+  --cad-color-surface-elevated: hsl(220deg 15% 90%);
+  --cad-color-surface-tertiary: hsl(220deg 10% 85%);
+  --cad-color-text-primary: hsl(220deg 25% 10%);
+  --cad-color-text-secondary: hsl(220deg 20% 30%);
+  --cad-color-text-muted: hsl(220deg 15% 50%);
+  --cad-glass-bg-base: rgb(255 255 255 / 75%);
+  --cad-glass-bg-hover: rgb(240 244 250 / 85%);
+  --cad-glass-border-base: rgb(0 0 0 / 8%);
+  --cad-shadow-sm: 0 2px 8px rgb(0 0 0 / 10%);
+  --cad-shadow-md: 0 8px 32px rgb(0 0 0 / 15%);
+}

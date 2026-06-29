@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useState } from 'react';
 
+import SettingsModal from './components/SettingsModal.tsx';
 import Sidebar from './components/Sidebar.tsx';
 import SketchCanvas from './components/SketchCanvas.tsx';
 import Toolbar from './components/Toolbar.tsx';
@@ -12,8 +13,14 @@ import { CadProvider, useCad } from './store/CadContext.tsx';
  */
 function WorkspaceShell(): ReactNode {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { documentState, undo, redo, setActiveTool, addFeature } = useCad();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const { documentState, undo, redo, setActiveTool, addFeature, settings } = useCad();
   const { activeSketchId, features } = documentState;
+
+  // Apply theme class to document body
+  useEffect(() => {
+    document.body.className = settings.theme === 'light' ? 'light-theme' : 'dark-theme';
+  }, [settings.theme]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -72,11 +79,16 @@ function WorkspaceShell(): ReactNode {
 
   return (
     <div className="app-container">
-      <Toolbar />
+      <Toolbar onOpenSettings={() => setIsSettingsOpen(true)} />
       <main className="main-workspace">
         <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen((prev) => !prev)} />
         {activeSketchId ? <SketchCanvas /> : <Viewport3D />}
       </main>
+      <SettingsModal
+        key={isSettingsOpen ? 'open' : 'closed'}
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
     </div>
   );
 }

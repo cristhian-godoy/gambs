@@ -187,7 +187,7 @@ export default function Viewport3D(): ReactNode {
   const gizmoCanvasRef = useRef<HTMLCanvasElement>(null);
 
   // Consume features to rebuild meshes when features change
-  const { documentState } = useCad();
+  const { documentState, settings } = useCad();
   const { features } = documentState;
 
   useEffect(() => {
@@ -215,6 +215,39 @@ export default function Viewport3D(): ReactNode {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
+
+    // Define keyboard listeners outside conditional block to expose to cleanup
+    let handleKeyDown: ((e: KeyboardEvent) => void) | undefined;
+    let handleKeyUp: ((e: KeyboardEvent) => void) | undefined;
+
+    if (settings.navigationStyle === 'blender') {
+      controls.mouseButtons = {
+        LEFT: THREE.MOUSE.NONE,
+        MIDDLE: THREE.MOUSE.ROTATE,
+        RIGHT: THREE.MOUSE.NONE,
+      };
+
+      handleKeyDown = (e: KeyboardEvent) => {
+        if (e.shiftKey) {
+          controls.mouseButtons.MIDDLE = THREE.MOUSE.PAN;
+        }
+      };
+
+      handleKeyUp = (e: KeyboardEvent) => {
+        if (!e.shiftKey) {
+          controls.mouseButtons.MIDDLE = THREE.MOUSE.ROTATE;
+        }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      window.addEventListener('keyup', handleKeyUp);
+    } else {
+      controls.mouseButtons = {
+        LEFT: THREE.MOUSE.ROTATE,
+        MIDDLE: THREE.MOUSE.DOLLY,
+        RIGHT: THREE.MOUSE.PAN,
+      };
+    }
 
     // 3. Dynamic Datum Features Rendering
     const datumGeometries: (THREE.BufferGeometry | THREE.Material)[] = [];
@@ -259,14 +292,21 @@ export default function Viewport3D(): ReactNode {
     }
 
     const planeXYFeat = features.find((f) => f.id === 'datum_plane_xy');
+    const labelOffset = (settings.gridSize / 2) * 0.9;
+
     if (planeXYFeat && planeXYFeat.params.visible !== false) {
-      const xyGrid = new THREE.GridHelper(100, 20, '#475569', '#1e293b');
+      const xyGrid = new THREE.GridHelper(
+        settings.gridSize,
+        settings.gridDivisions,
+        '#475569',
+        '#1e293b',
+      );
       xyGrid.rotation.x = Math.PI / 2;
       xyGrid.position.z = -0.01;
       scene.add(xyGrid);
 
       const label = createPlaneMeshLabel('XY', '#ef4444');
-      label.position.set(45, 45, 0);
+      label.position.set(labelOffset, labelOffset, 0);
       scene.add(label);
 
       datumGeometries.push(
@@ -280,13 +320,18 @@ export default function Viewport3D(): ReactNode {
 
     const planeYZFeat = features.find((f) => f.id === 'datum_plane_yz');
     if (planeYZFeat && planeYZFeat.params.visible !== false) {
-      const yzGrid = new THREE.GridHelper(100, 20, '#475569', '#1e293b');
+      const yzGrid = new THREE.GridHelper(
+        settings.gridSize,
+        settings.gridDivisions,
+        '#475569',
+        '#1e293b',
+      );
       yzGrid.rotation.z = Math.PI / 2;
       yzGrid.position.x = -0.01;
       scene.add(yzGrid);
 
       const label = createPlaneMeshLabel('YZ', '#22c55e');
-      label.position.set(0, 45, 45);
+      label.position.set(0, labelOffset, labelOffset);
       label.rotation.y = Math.PI / 2;
       scene.add(label);
 
@@ -301,12 +346,17 @@ export default function Viewport3D(): ReactNode {
 
     const planeZXFeat = features.find((f) => f.id === 'datum_plane_zx');
     if (planeZXFeat && planeZXFeat.params.visible !== false) {
-      const zxGrid = new THREE.GridHelper(100, 20, '#475569', '#1e293b');
+      const zxGrid = new THREE.GridHelper(
+        settings.gridSize,
+        settings.gridDivisions,
+        '#475569',
+        '#1e293b',
+      );
       zxGrid.position.y = -0.01;
       scene.add(zxGrid);
 
       const label = createPlaneMeshLabel('ZX', '#3b82f6');
-      label.position.set(45, 0, 45);
+      label.position.set(labelOffset, 0, labelOffset);
       label.rotation.x = Math.PI / 2;
       scene.add(label);
 
@@ -455,8 +505,10 @@ export default function Viewport3D(): ReactNode {
       wireframeGeom?.dispose();
       wireframeMat?.dispose();
       datumGeometries.forEach((d) => d?.dispose?.());
+      if (handleKeyDown) window.removeEventListener('keydown', handleKeyDown);
+      if (handleKeyUp) window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [features]);
+  }, [features, settings]);
 
   return (
     <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>

@@ -19,9 +19,22 @@ export interface SelectedElement {
 }
 
 /**
+ * Global application settings preferences.
+ */
+export interface AppSettings {
+  navigationStyle: 'default' | 'blender';
+  gridSize: number;
+  gridDivisions: number;
+  snapToGrid: boolean;
+  theme: 'dark' | 'light';
+}
+
+/**
  * Context properties and callbacks for CAD application state.
  */
 interface CadContextType {
+  settings: AppSettings;
+  updateSettings: (newSettings: Partial<AppSettings>) => void;
   documentState: DocumentState;
   canUndo: boolean;
   canRedo: boolean;
@@ -56,6 +69,26 @@ interface CadContextType {
 
 const CadContext = createContext<CadContextType | undefined>(undefined);
 
+const DEFAULT_SETTINGS: AppSettings = {
+  navigationStyle: 'default',
+  gridSize: 100,
+  gridDivisions: 20,
+  snapToGrid: true,
+  theme: 'dark',
+};
+
+const getInitialSettings = (): AppSettings => {
+  const stored = localStorage.getItem('gambs_settings');
+  if (stored) {
+    try {
+      return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
+    } catch {
+      // Ignore
+    }
+  }
+  return DEFAULT_SETTINGS;
+};
+
 /**
  * Context Provider component for managing CAD document state.
  * @param props Props containing children node.
@@ -68,6 +101,15 @@ export function CadProvider({ children }: { children: ReactNode }): ReactNode {
   const [selectionFilter, setSelectionFilter] = useState<'vertices' | 'edges' | 'faces' | 'all'>(
     'all',
   );
+  const [settings, setSettings] = useState<AppSettings>(getInitialSettings);
+
+  const updateSettings = (newSettings: Partial<AppSettings>) => {
+    setSettings((prev) => {
+      const updated = { ...prev, ...newSettings };
+      localStorage.setItem('gambs_settings', JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   const addFeature = (
     type: FeatureType,
@@ -202,6 +244,8 @@ export function CadProvider({ children }: { children: ReactNode }): ReactNode {
   const loadDocument = (doc: DocumentState) => dispatch({ type: 'LOAD_DOCUMENT', document: doc });
 
   const value: CadContextType = {
+    settings,
+    updateSettings,
     documentState: history.present,
     canUndo: history.past.length > 0,
     canRedo: history.future.length > 0,

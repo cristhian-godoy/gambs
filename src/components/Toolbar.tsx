@@ -15,6 +15,7 @@ import {
   Redo2,
   Ruler,
   Save,
+  Settings,
   Slash,
   Square,
   ToggleLeft,
@@ -29,11 +30,15 @@ import { type SelectedElement, useCad } from '../store/CadContext.tsx';
 import type { SketchGeometry } from '../store/types.ts';
 import { exportToObj, exportToStep, exportToStl, importFromStep } from '../utils/exporters.ts';
 
+interface ToolbarProps {
+  onOpenSettings: () => void;
+}
+
 /**
  * Top Toolbar component containing global actions, drawing tools, and constraint application.
  * @returns The rendered Toolbar component.
  */
-export default function Toolbar(): ReactNode {
+export default function Toolbar({ onOpenSettings }: ToolbarProps): ReactNode {
   const {
     undo,
     redo,
@@ -730,10 +735,25 @@ export default function Toolbar(): ReactNode {
           Redo
         </button>
       </div>
-      <div className="toolbar-group">
+      <div className="toolbar-group" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <span style={{ fontSize: '0.8rem', color: 'var(--cad-color-text-muted)' }}>
           Mode: {activeTool.toUpperCase()}
         </span>
+        <button
+          className="toolbar-btn"
+          onClick={onOpenSettings}
+          title="Open Settings"
+          style={{
+            padding: '4px',
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          <Settings size={16} />
+        </button>
       </div>
     </header>
   );

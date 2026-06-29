@@ -260,3 +260,218 @@
   background-color: var(--cad-glass-bg-hover);
   color: var(--cad-color-brand-main);
 }
+
+/* Settings Modal Styling */
+.settings-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgb(0 0 0 / 60%);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-modal-container {
+  width: 750px;
+  height: 520px;
+  background: var(--cad-glass-bg-dense);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--cad-glass-border-base);
+  border-radius: 12px;
+  box-shadow: var(--cad-shadow-md);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--cad-color-text-primary);
+}
+
+.settings-modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--cad-glass-border-base);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings-modal-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--cad-color-text-primary);
+}
+
+.settings-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--cad-color-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color var(--cad-transition-fast);
+}
+
+.settings-close-btn:hover {
+  background-color: var(--cad-glass-bg-hover);
+  color: var(--cad-color-text-primary);
+}
+
+.settings-modal-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.settings-modal-sidebar {
+  width: 200px;
+  border-right: 1px solid var(--cad-glass-border-base);
+  background: rgb(15 23 42 / 25%);
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+.settings-sidebar-category {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--cad-color-text-muted);
+  padding: 8px 12px 4px;
+  letter-spacing: 0.05em;
+}
+
+.settings-sidebar-item {
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--cad-color-text-secondary);
+  transition: all var(--cad-transition-fast);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-sidebar-item:hover {
+  background-color: var(--cad-glass-bg-hover);
+  color: var(--cad-color-text-primary);
+}
+
+.settings-sidebar-item.active {
+  background-color: rgb(56 189 248 / 15%);
+  color: var(--cad-color-brand-main);
+  font-weight: 600;
+}
+
+.settings-modal-content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.settings-group-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--cad-color-text-primary);
+  border-bottom: 1px solid var(--cad-glass-border-base);
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+}
+
+.settings-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.settings-form-row.checkbox-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.settings-form-row label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--cad-color-text-secondary);
+}
+
+.settings-form-row input[type='text'],
+.settings-form-row input[type='number'],
+.settings-form-row select {
+  padding: 8px 12px;
+  background: rgb(30 41 59 / 40%);
+  border: 1px solid var(--cad-glass-border-base);
+  border-radius: 6px;
+  color: var(--cad-color-text-primary);
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color var(--cad-transition-fast);
+}
+
+.settings-form-row input:focus,
+.settings-form-row select:focus {
+  border-color: var(--cad-color-brand-main);
+}
+
+.settings-form-row input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--cad-color-brand-main);
+  cursor: pointer;
+}
+
+.settings-modal-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--cad-glass-border-base);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  background: rgb(15 23 42 / 15%);
+}
+
+.settings-btn {
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 550;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--cad-transition-fast);
+}
+
+.settings-btn-secondary {
+  background: transparent;
+  border: 1px solid var(--cad-glass-border-base);
+  color: var(--cad-color-text-secondary);
+}
+
+.settings-btn-secondary:hover {
+  background-color: var(--cad-glass-bg-hover);
+  color: var(--cad-color-text-primary);
+}
+
+.settings-btn-primary {
+  background: var(--cad-color-brand-main);
+  border: 1px solid transparent;
+  color: var(--cad-color-surface-base);
+}
+
+.settings-btn-primary:hover {
+  background: #0ea5e9;
+  box-shadow: var(--cad-shadow-glow);
+}

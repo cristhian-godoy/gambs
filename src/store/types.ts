@@ -21,7 +21,9 @@ export type FeatureType =
   | 'mirror'
   | 'union'
   | 'difference'
-  | 'intersection';
+  | 'intersection'
+  | 'part'
+  | 'body';
 
 /**
  * Discrimination structure for geometries in a sketch.
@@ -42,6 +44,7 @@ export interface Feature {
   name: string;
   params: Record<string, unknown>;
   dependencies: string[];
+  parentId?: string;
 }
 
 /**
@@ -51,4 +54,5 @@ export interface DocumentState {
   features: Feature[];
   activeFeatureId: string | null;
   activeSketchId: string | null;
+  activeBodyId?: string | null;
 }

@@ -56,6 +56,7 @@ export default function Toolbar({ onOpenSettings }: ToolbarProps): ReactNode {
     loadDocument,
     selectionFilter,
     setSelectionFilter,
+    exitSketchEdit,
   } = useCad();
 
   const { activeSketchId, features } = documentState;
@@ -595,6 +596,24 @@ export default function Toolbar({ onOpenSettings }: ToolbarProps): ReactNode {
         {/* Constraints Actions Group */}
         {activeSketchId && (
           <>
+            <button
+              className="toolbar-btn primary"
+              onClick={exitSketchEdit}
+              title="Finish Sketch and Exit Edit Mode"
+              style={{
+                background: 'var(--cad-color-brand-success, #22c55e)',
+                color: '#ffffff',
+                fontWeight: 'bold',
+                padding: '6px 12px',
+                borderRadius: 'var(--cad-radius-md)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              ✓ Finish Sketch
+            </button>
+            <div className="toolbar-divider" />
             <button
               className="toolbar-btn"
               onClick={applyCoincident}

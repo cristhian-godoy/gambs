@@ -354,13 +354,13 @@ export default function Viewport3D(): ReactNode {
         '#475569',
         '#1e293b',
       );
-      xyGrid.geometry?.translate(settings.gridSize / 2, 0, -settings.gridSize / 2);
+      xyGrid.geometry?.translate(settings.gridSize / 2 + 1.0, 0, -settings.gridSize / 2 - 1.0);
       xyGrid.rotation.x = Math.PI / 2;
       xyGrid.position.z = -0.01;
       scene.add(xyGrid);
 
       const label = createPlaneMeshLabel('XY', '#ef4444');
-      label.position.set(settings.gridSize - 6, settings.gridSize - 6, 0.01);
+      label.position.set(settings.gridSize - 6 + 1.0, settings.gridSize - 6 + 1.0, 0.01);
       scene.add(label);
 
       const mat = label.material as THREE.MeshBasicMaterial;
@@ -381,13 +381,13 @@ export default function Viewport3D(): ReactNode {
         '#475569',
         '#1e293b',
       );
-      yzGrid.geometry?.translate(settings.gridSize / 2, 0, settings.gridSize / 2);
+      yzGrid.geometry?.translate(settings.gridSize / 2 + 1.0, 0, settings.gridSize / 2 + 1.0);
       yzGrid.rotation.z = Math.PI / 2;
       yzGrid.position.x = -0.01;
       scene.add(yzGrid);
 
       const label = createPlaneMeshLabel('YZ', '#22c55e');
-      label.position.set(0.01, settings.gridSize - 6, settings.gridSize - 6);
+      label.position.set(0.01, settings.gridSize - 6 + 1.0, settings.gridSize - 6 + 1.0);
       label.rotation.y = Math.PI / 2;
       scene.add(label);
 
@@ -409,12 +409,12 @@ export default function Viewport3D(): ReactNode {
         '#475569',
         '#1e293b',
       );
-      zxGrid.geometry?.translate(settings.gridSize / 2, 0, settings.gridSize / 2);
+      zxGrid.geometry?.translate(settings.gridSize / 2 + 1.0, 0, settings.gridSize / 2 + 1.0);
       zxGrid.position.y = -0.01;
       scene.add(zxGrid);
 
       const label = createPlaneMeshLabel('ZX', '#3b82f6');
-      label.position.set(settings.gridSize - 6, 0.01, settings.gridSize - 6);
+      label.position.set(settings.gridSize - 6 + 1.0, 0.01, settings.gridSize - 6 + 1.0);
       label.rotation.x = Math.PI / 2;
       scene.add(label);
 

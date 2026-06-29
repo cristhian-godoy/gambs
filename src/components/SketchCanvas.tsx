@@ -240,6 +240,10 @@ export default function SketchCanvas(): ReactNode {
 
       // Draw active sketch geometries & constraints
       if (currentSketchId) {
+        const activeSketch = currentFeatures.find((f) => f.id === currentSketchId);
+        const converged = activeSketch?.params.converged !== false;
+        const dof = (activeSketch?.params.dof as number) ?? 1;
+
         const geometries = localGeometriesRef.current;
         for (const geom of geometries) {
           const isSelected = currentSelected.some(
@@ -266,6 +270,14 @@ export default function SketchCanvas(): ReactNode {
             } else if (isHovered) {
               ctx.strokeStyle = 'hsl(45deg 100% 50%)';
               ctx.lineWidth = 2.5 / zoom;
+            } else if (!converged) {
+              // Red for over-constrained/conflict
+              ctx.strokeStyle = '#ef4444';
+              ctx.lineWidth = 2 / zoom;
+            } else if (dof === 0) {
+              // Green for fully-constrained
+              ctx.strokeStyle = '#22c55e';
+              ctx.lineWidth = 2 / zoom;
             } else {
               ctx.strokeStyle = 'var(--cad-color-brand-main)';
               ctx.lineWidth = 2 / zoom;
@@ -330,7 +342,6 @@ export default function SketchCanvas(): ReactNode {
         }
 
         // Draw constraint badges and dimension lines
-        const activeSketch = currentFeatures.find((f) => f.id === currentSketchId);
         const constraints = (activeSketch?.params.constraints as SketchConstraint[]) || [];
 
         // Helper to draw clean text right-side-up on transformed canvas

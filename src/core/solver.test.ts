@@ -20,7 +20,7 @@ describe('Sketch Solver', () => {
       },
     ];
 
-    const solved = solveSketch([line], constraints);
+    const { geometries: solved } = solveSketch([line], constraints);
     expect(solved[0].type).toBe('line');
     // For minimum-norm update, start Y and end Y should converge to their average Y (0.25)
     expect(solved[0].start.y).toBeCloseTo(0.25);
@@ -54,7 +54,7 @@ describe('Sketch Solver', () => {
       },
     ];
 
-    const solved = solveSketch([line1, line2], constraints);
+    const { geometries: solved } = solveSketch([line1, line2], constraints);
     // End of line 1 and start of line 2 must meet at the same point!
     expect(solved[0].end.x).toBeCloseTo(solved[1].start.x);
     expect(solved[0].end.y).toBeCloseTo(solved[1].start.y);
@@ -91,7 +91,7 @@ describe('Sketch Solver', () => {
       },
     ];
 
-    const solved = solveSketch([line1, line2], constraints);
+    const { geometries: solved } = solveSketch([line1, line2], constraints);
     const dx1 = solved[0].end.x - solved[0].start.x;
     const dy1 = solved[0].end.y - solved[0].start.y;
     const dx2 = solved[1].end.x - solved[1].start.x;
@@ -140,7 +140,7 @@ describe('Sketch Solver', () => {
       },
     ];
 
-    const solved = solveSketch([line, circle], constraints);
+    const { geometries: solved } = solveSketch([line, circle], constraints);
     // Center must end up on the diagonal y = x (approx 5.5, 5.5)
     expect(solved[1].center.x).toBeCloseTo(5.5);
     expect(solved[1].center.y).toBeCloseTo(5.5);
@@ -190,7 +190,7 @@ describe('Sketch Solver', () => {
       },
     ];
 
-    const solved = solveSketch([circle, line], constraints);
+    const { geometries: solved } = solveSketch([circle, line], constraints);
     // The line should solve to x = 5 (exactly tangent to circle of radius 5 at origin)
     expect(solved[1].start.x).toBeCloseTo(5);
     expect(solved[1].end.x).toBeCloseTo(5);
@@ -251,7 +251,7 @@ describe('Sketch Solver', () => {
       },
     ];
 
-    const solved = solveSketch([line1, line2], constraints);
+    const { geometries: solved } = solveSketch([line1, line2], constraints);
     // Line 2 should rotate to end at (10 * cos(60), 10 * sin(60)) = (5, 8.66)
     expect(solved[1].end.x).toBeCloseTo(5);
     expect(solved[1].end.y).toBeCloseTo(8.66, 1);

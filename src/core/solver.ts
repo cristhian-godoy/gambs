@@ -40,11 +40,7 @@ interface Variable {
 export function solveSketch(
   geometries: SketchGeometry[],
   constraints: SketchConstraint[],
-): SketchGeometry[] {
-  if (constraints.length === 0) {
-    return geometries;
-  }
-
+): { geometries: SketchGeometry[]; dof: number; converged: boolean } {
   // 1. Collect variables
   const variables: Variable[] = [];
   const varMap = new Map<string, number>(); // key: "geomId_prop", value: variable index
@@ -80,7 +76,10 @@ export function solveSketch(
   }
 
   const n = variables.length;
-  if (n === 0) return geometries;
+
+  if (constraints.length === 0) {
+    return { geometries, dof: n, converged: true };
+  }
 
   // Helper to get variable values vector
   const getX = (): number[] => variables.map((v) => v.value);
@@ -475,7 +474,7 @@ export function solveSketch(
   }
 
   const m = equations.length;
-  if (m === 0) return geometries;
+  if (m === 0) return { geometries, dof: n, converged: true };
 
   // 3. Newton-Raphson Solver loop
   const maxIterations = 50;
@@ -554,8 +553,8 @@ export function solveSketch(
     setX(newX);
   }
 
-  // 4. Update and return geometries
-  return geometries.map((geom) => {
+  // 4. Update and calculate DOF and convergence
+  const finalGeoms = geometries.map((geom) => {
     if (geom.type === 'line') {
       return {
         ...geom,
@@ -592,6 +591,80 @@ export function solveSketch(
     }
     return geom;
   });
+
+  // Calculate convergence error
+  const finalX = getX();
+  const finalFVals = equations.map((eq) => eq.evaluate(finalX));
+  let finalError = 0;
+  for (const v of finalFVals) {
+    finalError += v * v;
+  }
+  const converged = Math.sqrt(finalError) < tolerance;
+
+  // Calculate numerical Jacobian rank for DOF computation
+  const J: number[][] = Array.from({ length: m }, () => Array(n).fill(0));
+  for (let i = 0; i < m; i++) {
+    for (let j = 0; j < n; j++) {
+      const temp = finalX[j];
+      finalX[j] = temp + h;
+      const fPlus = equations[i].evaluate(finalX);
+      finalX[j] = temp - h;
+      const fMinus = equations[i].evaluate(finalX);
+      finalX[j] = temp;
+      J[i][j] = (fPlus - fMinus) / (2 * h);
+    }
+  }
+
+  const rank = computeMatrixRank(J);
+  const dof = Math.max(0, n - rank);
+
+  return { geometries: finalGeoms, dof, converged };
+}
+
+/**
+ * Computes the rank of a matrix using Gaussian elimination with partial pivoting.
+ */
+function computeMatrixRank(matrix: number[][], tolerance = 1e-5): number {
+  const m = matrix.length;
+  if (m === 0) return 0;
+  const n = matrix[0].length;
+  if (n === 0) return 0;
+
+  // Clone matrix
+  const A = matrix.map((row) => [...row]);
+
+  let rank = 0;
+  let col = 0;
+  for (let row = 0; row < m; row++) {
+    while (col < n) {
+      let pivotRow = row;
+      for (let r = row + 1; r < m; r++) {
+        if (Math.abs(A[r][col]) > Math.abs(A[pivotRow][col])) {
+          pivotRow = r;
+        }
+      }
+
+      if (Math.abs(A[pivotRow][col]) > tolerance) {
+        // Swap rows
+        const temp = A[row];
+        A[row] = A[pivotRow];
+        A[pivotRow] = temp;
+
+        // Eliminate
+        for (let r = row + 1; r < m; r++) {
+          const factor = A[r][col] / A[row][col];
+          for (let c = col; c < n; c++) {
+            A[r][c] -= factor * A[row][c];
+          }
+        }
+        rank++;
+        col++;
+        break;
+      }
+      col++;
+    }
+  }
+  return rank;
 }
 
 /**

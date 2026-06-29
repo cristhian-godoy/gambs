@@ -124,4 +124,36 @@ describe('cadReducer', () => {
     state = cadReducer(state, { type: 'EXIT_SKETCH_EDIT' });
     expect(state.present.activeSketchId).toBeNull();
   });
+
+  it('calculates degrees of freedom (DOF) and updates status on UPDATE_FEATURE', () => {
+    let state = cadReducer(initialHistoryState, { type: 'ADD_FEATURE', feature: mockFeature1 });
+    state = cadReducer(state, { type: 'ENTER_SKETCH_EDIT', id: 'f1' });
+
+    // Add a line geometry (starts with 4 variables/4 DOF)
+    state = cadReducer(state, {
+      type: 'ADD_SKETCH_GEOMETRY',
+      geometry: { type: 'line', id: 'l1', start: { x: 0, y: 0 }, end: { x: 10, y: 10 } },
+    });
+
+    expect(state.present.features[0].params.dof).toBe(4);
+
+    // Apply horizontal constraint (adds 1 equation, leaves 3 DOF)
+    state = cadReducer(state, {
+      type: 'UPDATE_FEATURE',
+      id: 'f1',
+      params: {
+        ...state.present.features[0].params,
+        constraints: [
+          {
+            id: 'c1',
+            type: 'horizontal',
+            targets: [{ geomId: 'l1' }],
+          },
+        ],
+      },
+    });
+
+    expect(state.present.features[0].params.dof).toBe(3);
+    expect(state.present.features[0].params.converged).toBe(true);
+  });
 });

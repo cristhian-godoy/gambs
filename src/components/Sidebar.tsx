@@ -72,6 +72,35 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                       }}
                     >
                       {feature.name}
+                      {feature.type === 'sketch' && feature.params.converged === false && (
+                        <span
+                          style={{
+                            fontSize: '0.7rem',
+                            color: '#ef4444',
+                            fontWeight: 'bold',
+                            marginLeft: '8px',
+                          }}
+                        >
+                          (Conflict)
+                        </span>
+                      )}
+                      {feature.type === 'sketch' &&
+                        feature.params.converged !== false &&
+                        feature.params.dof !== undefined && (
+                          <span
+                            style={{
+                              fontSize: '0.7rem',
+                              color:
+                                (feature.params.dof as number) === 0
+                                  ? '#22c55e'
+                                  : 'var(--cad-color-text-muted)',
+                              fontWeight: (feature.params.dof as number) === 0 ? 'bold' : 'normal',
+                              marginLeft: '8px',
+                            }}
+                          >
+                            ({feature.params.dof} DOF)
+                          </span>
+                        )}
                     </span>
                     <button
                       onClick={(e) => {

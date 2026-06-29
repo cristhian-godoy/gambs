@@ -79,8 +79,14 @@ export function cadReducer(state: CadHistoryState, action: CadAction): CadHistor
           if (f.type === 'sketch') {
             const geometries = (combinedParams.geometries as SketchGeometry[]) || [];
             const constraints = (combinedParams.constraints as SketchConstraint[]) || [];
-            const solvedGeometries = solveSketch(geometries, constraints);
+            const {
+              geometries: solvedGeometries,
+              dof,
+              converged,
+            } = solveSketch(geometries, constraints);
             combinedParams.geometries = solvedGeometries;
+            combinedParams.dof = dof;
+            combinedParams.converged = converged;
           }
           return {
             ...f,
@@ -192,12 +198,18 @@ export function cadReducer(state: CadHistoryState, action: CadAction): CadHistor
           const currentGeometries = (f.params.geometries as SketchGeometry[]) || [];
           const constraints = (f.params.constraints as SketchConstraint[]) || [];
           const newGeometries = [...currentGeometries, action.geometry];
-          const solvedGeometries = solveSketch(newGeometries, constraints);
+          const {
+            geometries: solvedGeometries,
+            dof,
+            converged,
+          } = solveSketch(newGeometries, constraints);
           return {
             ...f,
             params: {
               ...f.params,
               geometries: solvedGeometries,
+              dof,
+              converged,
             },
           };
         }
@@ -224,11 +236,29 @@ export function cadReducer(state: CadHistoryState, action: CadAction): CadHistor
       const nextFeatures = present.features.map((f) => {
         if (f.id === present.activeSketchId) {
           const currentGeometries = (f.params.geometries as SketchGeometry[]) || [];
+          const nextGeoms = currentGeometries.filter((g) => g.id !== action.geometryId);
+          const currentConstraints = (f.params.constraints as SketchConstraint[]) || [];
+          const nextConstraints = currentConstraints.filter((c) =>
+            c.targets.every(
+              (t) =>
+                nextGeoms.some((g) => g.id === t.geomId) ||
+                t.geomId === 'datum_origin' ||
+                t.geomId.startsWith('datum_axis_'),
+            ),
+          );
+          const {
+            geometries: solvedGeometries,
+            dof,
+            converged,
+          } = solveSketch(nextGeoms, nextConstraints);
           return {
             ...f,
             params: {
               ...f.params,
-              geometries: currentGeometries.filter((g) => g.id !== action.geometryId),
+              geometries: solvedGeometries,
+              constraints: nextConstraints,
+              dof,
+              converged,
             },
           };
         }

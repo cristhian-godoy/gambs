@@ -15,6 +15,7 @@ export interface SketchConstraint {
     | 'perpendicular'
     | 'point_on_line'
     | 'tangent'
+    | 'angle'
     | 'fixed';
   targets: {
     geomId: string;
@@ -401,6 +402,49 @@ export function solveSketch(
               const dy2 = x[ey2] - x[sy2];
               // Dot product = 0
               return dx1 * dx2 + dy1 * dy2;
+            },
+          });
+        }
+        break;
+      }
+
+      case 'angle': {
+        if (c.targets.length < 2 || c.value === undefined) break;
+        const g1 = c.targets[0].geomId;
+        const g2 = c.targets[1].geomId;
+        const sx1 = getVarIndex(g1, 'start_x');
+        const sy1 = getVarIndex(g1, 'start_y');
+        const ex1 = getVarIndex(g1, 'end_x');
+        const ey1 = getVarIndex(g1, 'end_y');
+        const sx2 = getVarIndex(g2, 'start_x');
+        const sy2 = getVarIndex(g2, 'start_y');
+        const ex2 = getVarIndex(g2, 'end_x');
+        const ey2 = getVarIndex(g2, 'end_y');
+
+        if (
+          sx1 !== -1 &&
+          sy1 !== -1 &&
+          ex1 !== -1 &&
+          ey1 !== -1 &&
+          sx2 !== -1 &&
+          sy2 !== -1 &&
+          ex2 !== -1 &&
+          ey2 !== -1
+        ) {
+          const targetAngle = c.value;
+          equations.push({
+            evaluate: (x) => {
+              const dx1 = x[ex1] - x[sx1];
+              const dy1 = x[ey1] - x[sy1];
+              const dx2 = x[ex2] - x[sx2];
+              const dy2 = x[ey2] - x[sy2];
+
+              const dotProd = dx1 * dx2 + dy1 * dy2;
+              const len1Sqr = dx1 * dx1 + dy1 * dy1;
+              const len2Sqr = dx2 * dx2 + dy2 * dy2;
+
+              const cosTheta = Math.cos(targetAngle);
+              return dotProd - Math.sqrt(len1Sqr * len2Sqr) * cosTheta;
             },
           });
         }

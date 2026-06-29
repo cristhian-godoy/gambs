@@ -195,4 +195,65 @@ describe('Sketch Solver', () => {
     expect(solved[1].start.x).toBeCloseTo(5);
     expect(solved[1].end.x).toBeCloseTo(5);
   });
+
+  it('solves angle constraints between lines', () => {
+    // Line 1: (0,0) -> (10, 0) - horizontal
+    // Line 2: (0,0) -> (10, 10) - 45 degrees
+    const line1 = {
+      type: 'line' as const,
+      id: 'l1',
+      start: { x: 0, y: 0 },
+      end: { x: 10, y: 0 },
+    };
+    const line2 = {
+      type: 'line' as const,
+      id: 'l2',
+      start: { x: 0, y: 0 },
+      end: { x: 10, y: 10 },
+    };
+
+    const constraints = [
+      // Force line 1 horizontal
+      {
+        id: 'c1',
+        type: 'horizontal' as const,
+        targets: [{ geomId: 'l1' }],
+      },
+      // Fix start point of both lines at (0,0)
+      {
+        id: 'c2',
+        type: 'fixed' as const,
+        targets: [{ geomId: 'l1', vertexType: 'start' as const }],
+        value: 0,
+      },
+      {
+        id: 'c3',
+        type: 'fixed' as const,
+        targets: [{ geomId: 'l2', vertexType: 'start' as const }],
+        value: 0,
+      },
+      // Force line length constant to avoid scale changes during rotation
+      {
+        id: 'c4',
+        type: 'distance' as const,
+        targets: [
+          { geomId: 'l2', vertexType: 'start' as const },
+          { geomId: 'l2', vertexType: 'end' as const },
+        ],
+        value: 10,
+      },
+      // Fix angle to 60 degrees (Math.PI / 3 = 1.047197)
+      {
+        id: 'c5',
+        type: 'angle' as const,
+        targets: [{ geomId: 'l1' }, { geomId: 'l2' }],
+        value: Math.PI / 3,
+      },
+    ];
+
+    const solved = solveSketch([line1, line2], constraints);
+    // Line 2 should rotate to end at (10 * cos(60), 10 * sin(60)) = (5, 8.66)
+    expect(solved[1].end.x).toBeCloseTo(5);
+    expect(solved[1].end.y).toBeCloseTo(8.66, 1);
+  });
 });

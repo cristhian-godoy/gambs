@@ -1,4 +1,4 @@
-import { SketchGeometry } from '../store/types.ts';
+import type { SketchGeometry } from '../store/types.ts';
 
 /**
  * Represents a geometric or dimensional constraint in a sketch.

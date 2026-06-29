@@ -1,5 +1,5 @@
-import { SketchConstraint, solveSketch } from '../core/solver.ts';
-import { DocumentState, Feature, SketchGeometry } from './types.ts';
+import { type SketchConstraint, solveSketch } from '../core/solver.ts';
+import type { DocumentState, Feature, SketchGeometry } from './types.ts';
 
 /**
  * State representing the history of the document.

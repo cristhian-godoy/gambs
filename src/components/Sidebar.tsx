@@ -2,7 +2,7 @@ import { ChevronLeft, ChevronRight, FolderTree, Trash2 } from 'lucide-react';
 import { type ReactNode } from 'react';
 
 import { useCad } from '../store/CadContext.tsx';
-import { FeatureType } from '../store/types.ts';
+import type { FeatureType } from '../store/types.ts';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -98,7 +98,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): ReactNode {
                               marginLeft: '8px',
                             }}
                           >
-                            ({feature.params.dof} DOF)
+                            ({feature.params.dof as number} DOF)
                           </span>
                         )}
                     </span>

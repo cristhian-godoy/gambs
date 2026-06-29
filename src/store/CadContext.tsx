@@ -1,9 +1,9 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, type ReactNode, useContext, useReducer, useState } from 'react';
 
-import { SketchConstraint } from '../core/solver.ts';
+import type { SketchConstraint } from '../core/solver.ts';
 import { cadReducer, initialHistoryState } from './cadStore.ts';
-import { DocumentState, Feature, FeatureType, SketchGeometry } from './types.ts';
+import type { DocumentState, Feature, FeatureType, SketchGeometry } from './types.ts';
 
 /**
  * Types of active canvas interaction tools.

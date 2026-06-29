@@ -19,8 +19,8 @@ import {
 } from 'lucide-react';
 import { type ReactNode } from 'react';
 
-import { SelectedElement, useCad } from '../store/CadContext.tsx';
-import { SketchGeometry } from '../store/types.ts';
+import { type SelectedElement, useCad } from '../store/CadContext.tsx';
+import type { SketchGeometry } from '../store/types.ts';
 
 /**
  * Top Toolbar component containing global actions, drawing tools, and constraint application.

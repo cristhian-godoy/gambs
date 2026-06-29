@@ -9,9 +9,9 @@ import {
   hitTestLine,
   hitTestRect,
 } from '../core/geometry.ts';
-import { SketchConstraint } from '../core/solver.ts';
+import type { SketchConstraint } from '../core/solver.ts';
 import { useCad } from '../store/CadContext.tsx';
-import { SketchGeometry } from '../store/types.ts';
+import type { SketchGeometry } from '../store/types.ts';
 
 interface Vertex {
   geomId: string;

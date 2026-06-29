@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { cadReducer, initialHistoryState } from './cadStore.ts';
-import { Feature, SketchGeometry } from './types.ts';
+import type { Feature, SketchGeometry } from './types.ts';
 
 describe('cadReducer', () => {
   const mockFeature1: Feature = {

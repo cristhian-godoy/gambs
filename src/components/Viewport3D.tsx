@@ -2,9 +2,9 @@ import { type ReactNode, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
-import { BrepShape, extrudeProfile, pocketProfile, Vertex3D } from '../core/brep.ts';
+import { type BrepShape, extrudeProfile, pocketProfile, type Vertex3D } from '../core/brep.ts';
 import { useCad } from '../store/CadContext.tsx';
-import { SketchGeometry } from '../store/types.ts';
+import type { SketchGeometry } from '../store/types.ts';
 
 /**
  * Helper to build THREE.BufferGeometry from a BrepShape solid.

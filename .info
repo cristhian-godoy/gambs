@@ -8,3 +8,11 @@ package.json
 	Local git ignore file.
 .info
 	Project directory file summaries.
+tsconfig.json
+	TypeScript configuration entry file.
+tsconfig.app.json
+	TypeScript configuration for the React application.
+tsconfig.node.json
+	TypeScript configuration for the Vite/Node environment.
+vite.config.ts
+	Vite environment and build configurations.

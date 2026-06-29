@@ -20,3 +20,5 @@ vite.config.ts
 	Example environment variables configuration.
 eslint.config.js
 	Linter configurations.
+.prettierrc
+	Prettier formatter configuration rules.

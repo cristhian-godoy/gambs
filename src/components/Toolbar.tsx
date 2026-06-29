@@ -362,7 +362,7 @@ export default function Toolbar({ onOpenSettings }: ToolbarProps): ReactNode {
     <header className="top-toolbar">
       <div className="toolbar-group">
         <span className="toolbar-title">
-          <span>📐</span> SPA CAD
+          <span>📐</span> gambs
         </span>
         <div className="file-menu-container" style={{ position: 'relative' }}>
           <button

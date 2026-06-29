@@ -111,7 +111,10 @@
   flex-direction: column;
   z-index: 10;
   transition: width var(--cad-transition-normal) ease;
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
   overflow: hidden;
   flex-shrink: 0;
 }

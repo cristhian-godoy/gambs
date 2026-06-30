@@ -21,6 +21,11 @@ export type CadAction =
   | { type: 'ENTER_SKETCH_EDIT'; id: string }
   | { type: 'EXIT_SKETCH_EDIT' }
   | { type: 'ADD_SKETCH_GEOMETRY'; geometry: SketchGeometry }
+  | {
+      type: 'ADD_SKETCH_ELEMENTS';
+      geometries: SketchGeometry[];
+      constraints: SketchConstraint[];
+    }
   | { type: 'DELETE_SKETCH_GEOMETRY'; geometryId: string }
   | { type: 'SET_ACTIVE_BODY'; id: string | null }
   | { type: 'UNDO' }
@@ -449,6 +454,48 @@ export function cadReducer(state: CadHistoryState, action: CadAction): CadHistor
             params: {
               ...f.params,
               geometries: solvedGeometries,
+              dof,
+              converged,
+            },
+          };
+        }
+        return f;
+      });
+
+      const nextPresent: DocumentState = {
+        ...present,
+        features: nextFeatures,
+      };
+
+      return {
+        past: [...past, present],
+        present: nextPresent,
+        future: [],
+      };
+    }
+
+    case 'ADD_SKETCH_ELEMENTS': {
+      if (!present.activeSketchId) {
+        return state;
+      }
+
+      const nextFeatures = present.features.map((f) => {
+        if (f.id === present.activeSketchId) {
+          const currentGeometries = (f.params.geometries as SketchGeometry[]) || [];
+          const currentConstraints = (f.params.constraints as SketchConstraint[]) || [];
+          const newGeometries = [...currentGeometries, ...action.geometries];
+          const newConstraints = [...currentConstraints, ...action.constraints];
+          const {
+            geometries: solvedGeometries,
+            dof,
+            converged,
+          } = solveSketch(newGeometries, newConstraints);
+          return {
+            ...f,
+            params: {
+              ...f.params,
+              geometries: solvedGeometries,
+              constraints: newConstraints,
               dof,
               converged,
             },

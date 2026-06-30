@@ -55,6 +55,7 @@ interface CadContextType {
   enterSketchEdit: (id: string) => void;
   exitSketchEdit: () => void;
   addSketchGeometry: (geometry: SketchGeometry) => void;
+  addSketchElements: (geometries: SketchGeometry[], constraints: SketchConstraint[]) => void;
   deleteSketchGeometry: (geometryId: string) => void;
   toggleConstructionGeometries: (geomIds: string[]) => void;
   addSketchConstraint: (c: Omit<SketchConstraint, 'id'>) => void;
@@ -149,6 +150,10 @@ export function CadProvider({ children }: { children: ReactNode }): ReactNode {
 
   const addSketchGeometry = (geometry: SketchGeometry) => {
     dispatch({ type: 'ADD_SKETCH_GEOMETRY', geometry });
+  };
+
+  const addSketchElements = (geometries: SketchGeometry[], constraints: SketchConstraint[]) => {
+    dispatch({ type: 'ADD_SKETCH_ELEMENTS', geometries, constraints });
   };
 
   const deleteSketchGeometry = (geometryId: string) => {
@@ -267,6 +272,7 @@ export function CadProvider({ children }: { children: ReactNode }): ReactNode {
     enterSketchEdit,
     exitSketchEdit,
     addSketchGeometry,
+    addSketchElements,
     deleteSketchGeometry,
     toggleConstructionGeometries,
     addSketchConstraint,

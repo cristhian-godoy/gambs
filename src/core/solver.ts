@@ -69,6 +69,10 @@ export function solveSketch(
       addVar(geom.id, 'center_x', geom.center.x);
       addVar(geom.id, 'center_y', geom.center.y);
       addVar(geom.id, 'radius', geom.radius);
+    } else if (geom.type === 'arc') {
+      addVar(geom.id, 'center_x', geom.center.x);
+      addVar(geom.id, 'center_y', geom.center.y);
+      addVar(geom.id, 'radius', geom.radius);
     } else if (geom.type === 'rect') {
       addVar(geom.id, 'start_x', geom.start.x);
       addVar(geom.id, 'start_y', geom.start.y);
@@ -158,37 +162,84 @@ export function solveSketch(
     return { xIdx: sxIdx, yIdx: getVarIndex(geomId, 'start_y') };
   };
 
+  interface PointExpr {
+    evaluateX: (x: number[]) => number;
+    evaluateY: (x: number[]) => number;
+    gradX: (x: number[]) => Record<number, number>;
+    gradY: (x: number[]) => Record<number, number>;
+  }
+
+  const resolvePointExpr = (target: {
+    geomId: string;
+    vertexType?: 'start' | 'end' | 'center' | 'corner1' | 'corner2';
+  }): PointExpr => {
+    const { geomId, vertexType } = target;
+
+    const geom = geometries.find((g) => g.id === geomId);
+    if (geom && geom.type === 'arc') {
+      const cxIdx = getVarIndex(geomId, 'center_x');
+      const cyIdx = getVarIndex(geomId, 'center_y');
+      const rIdx = getVarIndex(geomId, 'radius');
+
+      if (
+        cxIdx !== -1 &&
+        cyIdx !== -1 &&
+        rIdx !== -1 &&
+        (vertexType === 'start' || vertexType === 'end')
+      ) {
+        const theta = vertexType === 'start' ? geom.startAngle : geom.endAngle;
+        const cosT = Math.cos(theta);
+        const sinT = Math.sin(theta);
+
+        return {
+          evaluateX: (x) => x[cxIdx] + x[rIdx] * cosT,
+          evaluateY: (x) => x[cyIdx] + x[rIdx] * sinT,
+          gradX: () => ({ [cxIdx]: 1, [rIdx]: cosT }),
+          gradY: () => ({ [cyIdx]: 1, [rIdx]: sinT }),
+        };
+      }
+    }
+
+    const p = resolvePointIndex(target);
+    return {
+      evaluateX: (x) => (p.xIdx !== -1 ? x[p.xIdx] : p.fixedX !== undefined ? p.fixedX : 0),
+      evaluateY: (x) => (p.yIdx !== -1 ? x[p.yIdx] : p.fixedY !== undefined ? p.fixedY : 0),
+      gradX: () => (p.xIdx !== -1 ? { [p.xIdx]: 1 } : {}),
+      gradY: () => (p.yIdx !== -1 ? { [p.yIdx]: 1 } : {}),
+    };
+  };
+
   for (const c of constraints) {
     switch (c.type) {
       case 'coincident': {
         if (c.targets.length < 2) break;
-        const p1 = resolvePointIndex(c.targets[0]);
-        const p2 = resolvePointIndex(c.targets[1]);
+        const p1 = resolvePointExpr(c.targets[0]);
+        const p2 = resolvePointExpr(c.targets[1]);
 
         equations.push({
-          evaluate: (x) => {
-            const x1 = p1.xIdx !== -1 ? x[p1.xIdx] : p1.fixedX!;
-            const x2 = p2.xIdx !== -1 ? x[p2.xIdx] : p2.fixedX!;
-            return x1 - x2;
-          },
-          gradient: () => {
-            const grad: Record<number, number> = {};
-            if (p1.xIdx !== -1) grad[p1.xIdx] = 1;
-            if (p2.xIdx !== -1) grad[p2.xIdx] = -1;
-            return grad;
+          evaluate: (x) => p1.evaluateX(x) - p2.evaluateX(x),
+          gradient: (x) => {
+            const g1 = p1.gradX(x);
+            const g2 = p2.gradX(x);
+            const res = { ...g1 };
+            for (const idxStr of Object.keys(g2)) {
+              const idx = Number(idxStr);
+              res[idx] = (res[idx] || 0) - g2[idx];
+            }
+            return res;
           },
         });
         equations.push({
-          evaluate: (x) => {
-            const y1 = p1.yIdx !== -1 ? x[p1.yIdx] : p1.fixedY!;
-            const y2 = p2.yIdx !== -1 ? x[p2.yIdx] : p2.fixedY!;
-            return y1 - y2;
-          },
-          gradient: () => {
-            const grad: Record<number, number> = {};
-            if (p1.yIdx !== -1) grad[p1.yIdx] = 1;
-            if (p2.yIdx !== -1) grad[p2.yIdx] = -1;
-            return grad;
+          evaluate: (x) => p1.evaluateY(x) - p2.evaluateY(x),
+          gradient: (x) => {
+            const g1 = p1.gradY(x);
+            const g2 = p2.gradY(x);
+            const res = { ...g1 };
+            for (const idxStr of Object.keys(g2)) {
+              const idx = Number(idxStr);
+              res[idx] = (res[idx] || 0) - g2[idx];
+            }
+            return res;
           },
         });
         break;
@@ -224,32 +275,50 @@ export function solveSketch(
 
       case 'distance': {
         if (c.targets.length < 2 || c.value === undefined) break;
-        const p1 = resolvePointIndex(c.targets[0]);
-        const p2 = resolvePointIndex(c.targets[1]);
+        const p1 = resolvePointExpr(c.targets[0]);
+        const p2 = resolvePointExpr(c.targets[1]);
         const targetDist = c.value;
 
         equations.push({
           evaluate: (x) => {
-            const x1 = p1.xIdx !== -1 ? x[p1.xIdx] : p1.fixedX!;
-            const y1 = p1.yIdx !== -1 ? x[p1.yIdx] : p1.fixedY!;
-            const x2 = p2.xIdx !== -1 ? x[p2.xIdx] : p2.fixedX!;
-            const y2 = p2.yIdx !== -1 ? x[p2.yIdx] : p2.fixedY!;
+            const x1 = p1.evaluateX(x);
+            const y1 = p1.evaluateY(x);
+            const x2 = p2.evaluateX(x);
+            const y2 = p2.evaluateY(x);
             const dx = x1 - x2;
             const dy = y1 - y2;
             return dx * dx + dy * dy - targetDist * targetDist;
           },
           gradient: (x) => {
-            const x1 = p1.xIdx !== -1 ? x[p1.xIdx] : p1.fixedX!;
-            const y1 = p1.yIdx !== -1 ? x[p1.yIdx] : p1.fixedY!;
-            const x2 = p2.xIdx !== -1 ? x[p2.xIdx] : p2.fixedX!;
-            const y2 = p2.yIdx !== -1 ? x[p2.yIdx] : p2.fixedY!;
+            const x1 = p1.evaluateX(x);
+            const y1 = p1.evaluateY(x);
+            const x2 = p2.evaluateX(x);
+            const y2 = p2.evaluateY(x);
             const dx = x1 - x2;
             const dy = y1 - y2;
+
+            const g1x = p1.gradX(x);
+            const g1y = p1.gradY(x);
+            const g2x = p2.gradX(x);
+            const g2y = p2.gradY(x);
+
             const grad: Record<number, number> = {};
-            if (p1.xIdx !== -1) grad[p1.xIdx] = 2 * dx;
-            if (p2.xIdx !== -1) grad[p2.xIdx] = -2 * dx;
-            if (p1.yIdx !== -1) grad[p1.yIdx] = 2 * dy;
-            if (p2.yIdx !== -1) grad[p2.yIdx] = -2 * dy;
+            for (const idxStr of Object.keys(g1x)) {
+              const idx = Number(idxStr);
+              grad[idx] = (grad[idx] || 0) + 2 * dx * g1x[idx];
+            }
+            for (const idxStr of Object.keys(g2x)) {
+              const idx = Number(idxStr);
+              grad[idx] = (grad[idx] || 0) - 2 * dx * g2x[idx];
+            }
+            for (const idxStr of Object.keys(g1y)) {
+              const idx = Number(idxStr);
+              grad[idx] = (grad[idx] || 0) + 2 * dy * g1y[idx];
+            }
+            for (const idxStr of Object.keys(g2y)) {
+              const idx = Number(idxStr);
+              grad[idx] = (grad[idx] || 0) - 2 * dy * g2y[idx];
+            }
             return grad;
           },
         });
@@ -271,7 +340,7 @@ export function solveSketch(
 
       case 'point_on_line': {
         if (c.targets.length < 2) break;
-        const p = resolvePointIndex(c.targets[0]);
+        const p = resolvePointExpr(c.targets[0]);
         const lineId = c.targets[1].geomId;
         const sx = getVarIndex(lineId, 'start_x');
         const sy = getVarIndex(lineId, 'start_y');
@@ -281,8 +350,8 @@ export function solveSketch(
         if (sx !== -1 && sy !== -1 && ex !== -1 && ey !== -1) {
           equations.push({
             evaluate: (x) => {
-              const px = p.xIdx !== -1 ? x[p.xIdx] : p.fixedX!;
-              const py = p.yIdx !== -1 ? x[p.yIdx] : p.fixedY!;
+              const px = p.evaluateX(x);
+              const py = p.evaluateY(x);
               const lx1 = x[sx];
               const ly1 = x[sy];
               const lx2 = x[ex];
@@ -290,15 +359,26 @@ export function solveSketch(
               return (px - lx1) * (ly2 - ly1) - (py - ly1) * (lx2 - lx1);
             },
             gradient: (x) => {
-              const px = p.xIdx !== -1 ? x[p.xIdx] : p.fixedX!;
-              const py = p.yIdx !== -1 ? x[p.yIdx] : p.fixedY!;
+              const px = p.evaluateX(x);
+              const py = p.evaluateY(x);
               const lx1 = x[sx];
               const ly1 = x[sy];
               const lx2 = x[ex];
               const ly2 = x[ey];
+
+              const gp = p.gradX(x);
+              const gpy = p.gradY(x);
+
               const grad: Record<number, number> = {};
-              if (p.xIdx !== -1) grad[p.xIdx] = ly2 - ly1;
-              if (p.yIdx !== -1) grad[p.yIdx] = lx1 - lx2;
+              for (const idxStr of Object.keys(gp)) {
+                const idx = Number(idxStr);
+                grad[idx] = (grad[idx] || 0) + (ly2 - ly1) * gp[idx];
+              }
+              for (const idxStr of Object.keys(gpy)) {
+                const idx = Number(idxStr);
+                grad[idx] = (grad[idx] || 0) - (lx2 - lx1) * gpy[idx];
+              }
+
               grad[sx] = py - ly2;
               grad[sy] = lx2 - px;
               grad[ex] = ly1 - py;
@@ -610,22 +690,18 @@ export function solveSketch(
       }
 
       case 'fixed': {
-        const p = resolvePointIndex(c.targets[0]);
+        const p = resolvePointExpr(c.targets[0]);
         const fx = c.xValue !== undefined ? c.xValue : c.value !== undefined ? c.value : 0;
         const fy = c.yValue !== undefined ? c.yValue : c.value !== undefined ? c.value : 0;
 
-        if (p.xIdx !== -1) {
-          equations.push({
-            evaluate: (x) => x[p.xIdx] - fx,
-            gradient: () => ({ [p.xIdx]: 1 }),
-          });
-        }
-        if (p.yIdx !== -1) {
-          equations.push({
-            evaluate: (x) => x[p.yIdx] - fy,
-            gradient: () => ({ [p.yIdx]: 1 }),
-          });
-        }
+        equations.push({
+          evaluate: (x) => p.evaluateX(x) - fx,
+          gradient: (x) => p.gradX(x),
+        });
+        equations.push({
+          evaluate: (x) => p.evaluateY(x) - fy,
+          gradient: (x) => p.gradY(x),
+        });
         break;
       }
 
@@ -725,6 +801,15 @@ export function solveSketch(
         },
       };
     } else if (geom.type === 'circle') {
+      return {
+        ...geom,
+        center: {
+          x: variables[getVarIndex(geom.id, 'center_x')].value,
+          y: variables[getVarIndex(geom.id, 'center_y')].value,
+        },
+        radius: variables[getVarIndex(geom.id, 'radius')].value,
+      };
+    } else if (geom.type === 'arc') {
       return {
         ...geom,
         center: {

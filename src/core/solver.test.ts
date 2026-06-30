@@ -257,4 +257,58 @@ describe('Sketch Solver', () => {
     expect(solved[1].end.x).toBeCloseTo(5);
     expect(solved[1].end.y).toBeCloseTo(8.66, 1);
   });
+
+  it('solves coincident constraints involving arc endpoints', () => {
+    // Line 1 starting near (5, 5), ending near (10, 5)
+    // Arc center (5, 5), radius 3, start angle Math.PI/2 (top point: 5, 8)
+    const line = {
+      type: 'line' as const,
+      id: 'l1',
+      start: { x: 4.8, y: 8.2 },
+      end: { x: 10, y: 5 },
+    };
+    const arc = {
+      type: 'arc' as const,
+      id: 'a1',
+      center: { x: 5, y: 5 },
+      radius: 3,
+      startAngle: Math.PI / 2,
+      endAngle: (3 * Math.PI) / 2,
+    };
+
+    const constraints = [
+      // Fix arc center
+      {
+        id: 'c1',
+        type: 'fixed' as const,
+        targets: [{ geomId: 'a1', vertexType: 'center' as const }],
+        value: 5,
+      },
+      // Fix arc radius
+      {
+        id: 'c2',
+        type: 'distance' as const,
+        targets: [
+          { geomId: 'a1', vertexType: 'center' as const },
+          { geomId: 'a1', vertexType: 'start' as const },
+        ],
+        value: 3,
+      },
+      // Coincident constraint: line start <-> arc start
+      {
+        id: 'c3',
+        type: 'coincident' as const,
+        targets: [
+          { geomId: 'l1', vertexType: 'start' as const },
+          { geomId: 'a1', vertexType: 'start' as const },
+        ],
+      },
+    ];
+
+    const solved = solveSketch([line, arc], constraints).geometries as any[];
+    // Top point of arc is (5, 5 + 3) = (5, 8)
+    // Line start should be solved to (5, 8)
+    expect(solved[0].start.x).toBeCloseTo(5);
+    expect(solved[0].start.y).toBeCloseTo(8);
+  });
 });

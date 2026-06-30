@@ -27,6 +27,7 @@ interface UseSketchInteractionProps {
   selectedElements: SelectedElement[];
   setSelectedElements: (elements: SelectedElement[]) => void;
   addSketchGeometry: (geometry: SketchGeometry) => void;
+  addSketchElements: (geometries: SketchGeometry[], constraints: SketchConstraint[]) => void;
   updateSketchConstraint: (constraintId: string, value: number) => void;
   updateFeature: (id: string, params: Record<string, unknown>) => void;
   previewRef: RefObject<SketchGeometry | SketchGeometry[] | null>;
@@ -214,6 +215,7 @@ export function useSketchInteraction({
   selectedElements,
   setSelectedElements,
   addSketchGeometry: addSketchGeometryBase,
+  addSketchElements: addSketchElementsBase,
   updateSketchConstraint,
   updateFeature,
   previewRef,
@@ -234,6 +236,19 @@ export function useSketchInteraction({
       addSketchGeometryBase(geometry);
     },
     [addSketchGeometryBase, localGeometriesRef],
+  );
+
+  const addSketchElements = useCallback(
+    (geometries: SketchGeometry[], constraints: SketchConstraint[]) => {
+      if (localGeometriesRef.current) {
+        (localGeometriesRef as { current: SketchGeometry[] }).current = [
+          ...localGeometriesRef.current,
+          ...geometries,
+        ];
+      }
+      addSketchElementsBase(geometries, constraints);
+    },
+    [addSketchElementsBase, localGeometriesRef],
   );
 
   // Drawing state
@@ -642,24 +657,55 @@ export function useSketchInteraction({
           const py = start.y;
           const t = Date.now();
 
-          addSketchGeometry({
-            type: 'line',
-            id: `line_tri1_${t}`,
-            start: { x: bx1, y: by1 },
-            end: { x: bx2, y: by2 },
-          });
-          addSketchGeometry({
-            type: 'line',
-            id: `line_tri2_${t}`,
-            start: { x: bx2, y: by2 },
-            end: { x: px, y: py },
-          });
-          addSketchGeometry({
-            type: 'line',
-            id: `line_tri3_${t}`,
-            start: { x: px, y: py },
-            end: { x: bx1, y: by1 },
-          });
+          const geometries = [
+            {
+              type: 'line' as const,
+              id: `line_tri1_${t}`,
+              start: { x: bx1, y: by1 },
+              end: { x: bx2, y: by2 },
+            },
+            {
+              type: 'line' as const,
+              id: `line_tri2_${t}`,
+              start: { x: bx2, y: by2 },
+              end: { x: px, y: py },
+            },
+            {
+              type: 'line' as const,
+              id: `line_tri3_${t}`,
+              start: { x: px, y: py },
+              end: { x: bx1, y: by1 },
+            },
+          ];
+
+          const constraints: SketchConstraint[] = [
+            {
+              id: `c_tri1_${t}`,
+              type: 'coincident',
+              targets: [
+                { geomId: `line_tri1_${t}`, vertexType: 'end' },
+                { geomId: `line_tri2_${t}`, vertexType: 'start' },
+              ],
+            },
+            {
+              id: `c_tri2_${t}`,
+              type: 'coincident',
+              targets: [
+                { geomId: `line_tri2_${t}`, vertexType: 'end' },
+                { geomId: `line_tri3_${t}`, vertexType: 'start' },
+              ],
+            },
+            {
+              id: `c_tri3_${t}`,
+              type: 'coincident',
+              targets: [
+                { geomId: `line_tri3_${t}`, vertexType: 'end' },
+                { geomId: `line_tri1_${t}`, vertexType: 'start' },
+              ],
+            },
+          ];
+
+          addSketchElements(geometries, constraints);
 
           isDrawingRef.current = false;
           drawingStartRef.current = null;
@@ -676,34 +722,95 @@ export function useSketchInteraction({
             const cy = (y1 + y2) / 2;
             const t = Date.now();
 
-            addSketchGeometry({
-              type: 'line',
-              id: `line_slot1_${t}`,
-              start: { x: x1 + radius, y: y1 },
-              end: { x: x2 - radius, y: y1 },
-            });
-            addSketchGeometry({
-              type: 'line',
-              id: `line_slot2_${t}`,
-              start: { x: x1 + radius, y: y2 },
-              end: { x: x2 - radius, y: y2 },
-            });
-            addSketchGeometry({
-              type: 'arc',
-              id: `arc_slot1_${t}`,
-              center: { x: x1 + radius, y: cy },
-              radius,
-              startAngle: Math.PI / 2,
-              endAngle: (Math.PI * 3) / 2,
-            });
-            addSketchGeometry({
-              type: 'arc',
-              id: `arc_slot2_${t}`,
-              center: { x: x2 - radius, y: cy },
-              radius,
-              startAngle: -Math.PI / 2,
-              endAngle: Math.PI / 2,
-            });
+            const geometries = [
+              {
+                type: 'line' as const,
+                id: `line_slot1_${t}`,
+                start: { x: x1 + radius, y: y1 },
+                end: { x: x2 - radius, y: y1 },
+              },
+              {
+                type: 'line' as const,
+                id: `line_slot2_${t}`,
+                start: { x: x1 + radius, y: y2 },
+                end: { x: x2 - radius, y: y2 },
+              },
+              {
+                type: 'arc' as const,
+                id: `arc_slot1_${t}`,
+                center: { x: x1 + radius, y: cy },
+                radius,
+                startAngle: Math.PI / 2,
+                endAngle: (Math.PI * 3) / 2,
+              },
+              {
+                type: 'arc' as const,
+                id: `arc_slot2_${t}`,
+                center: { x: x2 - radius, y: cy },
+                radius,
+                startAngle: -Math.PI / 2,
+                endAngle: Math.PI / 2,
+              },
+            ];
+
+            const constraints: SketchConstraint[] = [
+              // Coincident endpoints
+              {
+                id: `c_slot_co1_${t}`,
+                type: 'coincident',
+                targets: [
+                  { geomId: `line_slot1_${t}`, vertexType: 'start' },
+                  { geomId: `arc_slot1_${t}`, vertexType: 'start' },
+                ],
+              },
+              {
+                id: `c_slot_co2_${t}`,
+                type: 'coincident',
+                targets: [
+                  { geomId: `line_slot1_${t}`, vertexType: 'end' },
+                  { geomId: `arc_slot2_${t}`, vertexType: 'end' },
+                ],
+              },
+              {
+                id: `c_slot_co3_${t}`,
+                type: 'coincident',
+                targets: [
+                  { geomId: `line_slot2_${t}`, vertexType: 'start' },
+                  { geomId: `arc_slot1_${t}`, vertexType: 'end' },
+                ],
+              },
+              {
+                id: `c_slot_co4_${t}`,
+                type: 'coincident',
+                targets: [
+                  { geomId: `line_slot2_${t}`, vertexType: 'end' },
+                  { geomId: `arc_slot2_${t}`, vertexType: 'start' },
+                ],
+              },
+              // Tangency
+              {
+                id: `c_slot_tan1_${t}`,
+                type: 'tangent',
+                targets: [{ geomId: `line_slot1_${t}` }, { geomId: `arc_slot1_${t}` }],
+              },
+              {
+                id: `c_slot_tan2_${t}`,
+                type: 'tangent',
+                targets: [{ geomId: `line_slot1_${t}` }, { geomId: `arc_slot2_${t}` }],
+              },
+              {
+                id: `c_slot_tan3_${t}`,
+                type: 'tangent',
+                targets: [{ geomId: `line_slot2_${t}` }, { geomId: `arc_slot1_${t}` }],
+              },
+              {
+                id: `c_slot_tan4_${t}`,
+                type: 'tangent',
+                targets: [{ geomId: `line_slot2_${t}` }, { geomId: `arc_slot2_${t}` }],
+              },
+            ];
+
+            addSketchElements(geometries, constraints);
           }
 
           isDrawingRef.current = false;
@@ -998,6 +1105,8 @@ export function useSketchInteraction({
     canvasRef,
     addSketchGeometryBase,
     addSketchGeometry,
+    addSketchElementsBase,
+    addSketchElements,
     updateSketchConstraint,
     updateFeature,
     setSelectedElements,

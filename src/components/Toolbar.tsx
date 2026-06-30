@@ -16,6 +16,7 @@ import {
   LayoutGrid,
   Link as LinkIcon,
   Lock,
+  Magnet,
   Minus,
   MoveRight,
   MoveUp,
@@ -72,6 +73,8 @@ export default function Toolbar({ onOpenSettings }: ToolbarProps): ReactNode {
     exitSketchEdit,
     setIsSelectingSupportPlane,
     enterSketchEdit,
+    settings,
+    updateSettings,
   } = useCad();
 
   const { activeSketchId, features, activeFeatureId } = documentState;
@@ -962,6 +965,14 @@ export default function Toolbar({ onOpenSettings }: ToolbarProps): ReactNode {
         {/* Constraints Actions Group */}
         {activeSketchId && (
           <>
+            <button
+              className={`toolbar-btn ${settings.snapToVertices ? 'active' : ''}`}
+              onClick={() => updateSettings({ snapToVertices: !settings.snapToVertices })}
+              title="Toggle Snap to Vertices"
+            >
+              <Magnet size={16} /> Snap
+            </button>
+            <div className="toolbar-divider" />
             <button
               className="toolbar-btn primary"
               onClick={exitSketchEdit}

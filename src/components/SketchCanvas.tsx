@@ -21,6 +21,60 @@ interface Vertex {
   point: { x: number; y: number };
 }
 
+const getSnapTarget = (
+  worldPos: { x: number; y: number },
+  geometries: SketchGeometry[],
+  zoom: number,
+): { x: number; y: number } => {
+  const tolerance = 10 / zoom; // 10px snapping threshold
+  let closestVertex: { x: number; y: number } | null = null;
+  let minDistance = tolerance;
+
+  for (const geom of geometries) {
+    const vertices: { x: number; y: number }[] = [];
+    if (geom.type === 'line') {
+      vertices.push(geom.start, geom.end);
+    } else if (geom.type === 'circle') {
+      vertices.push(geom.center);
+    } else if (geom.type === 'rect') {
+      vertices.push(
+        geom.start,
+        geom.end,
+        { x: geom.end.x, y: geom.start.y },
+        { x: geom.start.x, y: geom.end.y },
+      );
+    } else if (geom.type === 'arc') {
+      vertices.push(
+        geom.center,
+        {
+          x: geom.center.x + geom.radius * Math.cos(geom.startAngle),
+          y: geom.center.y + geom.radius * Math.sin(geom.startAngle),
+        },
+        {
+          x: geom.center.x + geom.radius * Math.cos(geom.endAngle),
+          y: geom.center.y + geom.radius * Math.sin(geom.endAngle),
+        },
+      );
+    }
+
+    for (const v of vertices) {
+      const d = distance(worldPos, v);
+      if (d < minDistance) {
+        minDistance = d;
+        closestVertex = v;
+      }
+    }
+  }
+
+  // Check global origin
+  const dOrigin = distance(worldPos, { x: 0, y: 0 });
+  if (dOrigin < minDistance) {
+    closestVertex = { x: 0, y: 0 };
+  }
+
+  return closestVertex || worldPos;
+};
+
 interface DimensionTextInfo {
   id: string;
   x: number;
@@ -680,7 +734,11 @@ export default function SketchCanvas(): ReactNode {
 
       // Handle drawing triggers
       if (e.button === 0 && currentTool !== 'select') {
-        const worldPos = screenToWorld(e.clientX, e.clientY);
+        let worldPos = screenToWorld(e.clientX, e.clientY);
+        if (settings.snapToVertices) {
+          const { zoom } = transformRef.current;
+          worldPos = getSnapTarget(worldPos, localGeometriesRef.current, zoom);
+        }
 
         const sketchId = currentSketchId;
         if (!sketchId) {
@@ -847,7 +905,11 @@ export default function SketchCanvas(): ReactNode {
 
     const handleMouseMove = (e: MouseEvent) => {
       const { activeTool: currentTool, activeSketchId: currentSketchId } = stateRef.current;
-      const worldPos = screenToWorld(e.clientX, e.clientY);
+      let worldPos = screenToWorld(e.clientX, e.clientY);
+      if (currentTool !== 'select' && settings.snapToVertices) {
+        const { zoom } = transformRef.current;
+        worldPos = getSnapTarget(worldPos, localGeometriesRef.current, zoom);
+      }
       setCoords({ x: worldPos.x, y: worldPos.y });
 
       // Handle pan offset

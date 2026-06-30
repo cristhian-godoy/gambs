@@ -1,7 +1,7 @@
 import { Grid, Monitor, Sliders, X } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
-import { type AppSettings, useCad } from '../store/CadContext.tsx';
+import { type AppSettings, settingsStore, useSettings } from '../store/settingsStore.ts';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -16,7 +16,9 @@ type SettingCategory = 'general' | 'navigation' | 'grid';
  * @returns The rendered SettingsModal component.
  */
 export default function SettingsModal({ isOpen, onClose }: SettingsModalProps): ReactNode {
-  const { settings, updateSettings } = useCad();
+  const settings = useSettings();
+  const updateSettings = (newSettings: Partial<AppSettings>) =>
+    settingsStore.updateSettings(newSettings);
   const [activeCategory, setActiveCategory] = useState<SettingCategory>('general');
 
   // Local state to hold modifications before applying

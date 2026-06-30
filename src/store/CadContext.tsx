@@ -18,17 +18,15 @@ export interface SelectedElement {
   vertexType?: 'start' | 'end' | 'center' | 'corner1' | 'corner2';
 }
 
+import { type AppSettings, settingsStore, useSettings } from './settingsStore.ts';
+export type { AppSettings };
+
 /**
- * Global application settings preferences.
+ * Represents a selected sketch element (geometry or specific vertex).
  */
-export interface AppSettings {
-  navigationStyle: 'default' | 'blender';
-  gridSize: number;
-  gridDivisions: number;
-  snapToGrid: boolean;
-  theme: 'dark' | 'light';
-  multiSelectMethod: 'click' | 'ctrlClick';
-  snapToVertices: boolean;
+export interface SelectedElement {
+  geomId: string;
+  vertexType?: 'start' | 'end' | 'center' | 'corner1' | 'corner2';
 }
 
 /**
@@ -81,28 +79,6 @@ interface CadContextType {
 
 const CadContext = createContext<CadContextType | undefined>(undefined);
 
-const DEFAULT_SETTINGS: AppSettings = {
-  navigationStyle: 'default',
-  gridSize: 100,
-  gridDivisions: 20,
-  snapToGrid: true,
-  theme: 'dark',
-  multiSelectMethod: 'ctrlClick',
-  snapToVertices: true,
-};
-
-const getInitialSettings = (): AppSettings => {
-  const stored = localStorage.getItem('gambs_settings');
-  if (stored) {
-    try {
-      return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
-    } catch {
-      // Ignore
-    }
-  }
-  return DEFAULT_SETTINGS;
-};
-
 /**
  * Context Provider component for managing CAD document state.
  * @param props Props containing children node.
@@ -116,7 +92,7 @@ export function CadProvider({ children }: { children: ReactNode }): ReactNode {
   const [selectionFilter, setSelectionFilter] = useState<'vertices' | 'edges' | 'faces' | 'all'>(
     'all',
   );
-  const [settings, setSettings] = useState<AppSettings>(getInitialSettings);
+  const settings = useSettings();
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -136,11 +112,7 @@ export function CadProvider({ children }: { children: ReactNode }): ReactNode {
   };
 
   const updateSettings = (newSettings: Partial<AppSettings>) => {
-    setSettings((prev) => {
-      const updated = { ...prev, ...newSettings };
-      localStorage.setItem('gambs_settings', JSON.stringify(updated));
-      return updated;
-    });
+    settingsStore.updateSettings(newSettings);
   };
 
   const addFeature = (

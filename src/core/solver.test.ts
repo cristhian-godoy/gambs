@@ -311,4 +311,42 @@ describe('Sketch Solver', () => {
     expect(solved[0].start.x).toBeCloseTo(5);
     expect(solved[0].start.y).toBeCloseTo(8);
   });
+
+  it('correctly maps negative radius variables to absolute values and shifts angles for arcs', () => {
+    // We create a sketch with an arc that has a negative radius initially
+    // to check that solver.ts output maps it back with absolute radius and rotated start/end angles
+    const arc = {
+      type: 'arc' as const,
+      id: 'a1',
+      center: { x: 0, y: 0 },
+      radius: -10,
+      startAngle: 0,
+      endAngle: Math.PI / 2,
+    };
+    const circle = {
+      type: 'circle' as const,
+      id: 'c1',
+      center: { x: 0, y: 0 },
+      radius: -15,
+    };
+
+    const constraints = [
+      {
+        id: 'c_fixed_circle',
+        type: 'fixed' as const,
+        targets: [{ geomId: 'c1', vertexType: 'center' as const }],
+        value: 0,
+      },
+    ];
+
+    const solved = solveSketch([arc, circle], constraints).geometries as any[];
+
+    // Circle: radius should be absolute value 15
+    expect(solved[1].radius).toBe(15);
+
+    // Arc: radius should be absolute value 10, startAngle should shift by PI (to PI), endAngle by PI (to 1.5 * PI)
+    expect(solved[0].radius).toBe(10);
+    expect(solved[0].startAngle).toBeCloseTo(Math.PI);
+    expect(solved[0].endAngle).toBeCloseTo(1.5 * Math.PI);
+  });
 });

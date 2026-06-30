@@ -52,6 +52,14 @@ export function resolvePointCoords(
     if (vertexType === 'corner1') return { x: geom.end.x, y: geom.start.y };
     return { x: geom.start.x, y: geom.end.y };
   }
+  if (geom.type === 'arc') {
+    if (vertexType === 'center') return geom.center;
+    const theta = vertexType === 'start' ? geom.startAngle : geom.endAngle;
+    return {
+      x: geom.center.x + geom.radius * Math.cos(theta),
+      y: geom.center.y + geom.radius * Math.sin(theta),
+    };
+  }
   return { x: 0, y: 0 };
 }
 

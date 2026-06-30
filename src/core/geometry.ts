@@ -348,7 +348,7 @@ export function drawLine(ctx: CanvasRenderingContext2D, line: Line2D): void {
  */
 export function drawCircle(ctx: CanvasRenderingContext2D, circle: Circle2D): void {
   ctx.beginPath();
-  ctx.arc(circle.center.x, circle.center.y, circle.radius, 0, Math.PI * 2);
+  ctx.arc(circle.center.x, circle.center.y, Math.max(0, circle.radius), 0, Math.PI * 2);
   ctx.stroke();
 }
 
@@ -361,7 +361,7 @@ export function drawArc(ctx: CanvasRenderingContext2D, arc: Arc2D): void {
   ctx.beginPath();
   // Canvas context arc handles CCW by default if counterclockwise is false (which it is)
   // But since we inverted the Y-axis on canvas (scale(zoom, -zoom)), standard positive angles go CCW.
-  ctx.arc(arc.center.x, arc.center.y, arc.radius, arc.startAngle, arc.endAngle, false);
+  ctx.arc(arc.center.x, arc.center.y, Math.max(0, arc.radius), arc.startAngle, arc.endAngle, false);
   ctx.stroke();
 }
 

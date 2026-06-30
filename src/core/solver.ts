@@ -801,22 +801,32 @@ export function solveSketch(
         },
       };
     } else if (geom.type === 'circle') {
+      const solvedRadius = variables[getVarIndex(geom.id, 'radius')].value;
       return {
         ...geom,
         center: {
           x: variables[getVarIndex(geom.id, 'center_x')].value,
           y: variables[getVarIndex(geom.id, 'center_y')].value,
         },
-        radius: variables[getVarIndex(geom.id, 'radius')].value,
+        radius: Math.abs(solvedRadius),
       };
     } else if (geom.type === 'arc') {
+      const solvedRadius = variables[getVarIndex(geom.id, 'radius')].value;
+      let startAngle = geom.startAngle;
+      let endAngle = geom.endAngle;
+      if (solvedRadius < 0) {
+        startAngle = (startAngle + Math.PI) % (Math.PI * 2);
+        endAngle = (endAngle + Math.PI) % (Math.PI * 2);
+      }
       return {
         ...geom,
         center: {
           x: variables[getVarIndex(geom.id, 'center_x')].value,
           y: variables[getVarIndex(geom.id, 'center_y')].value,
         },
-        radius: variables[getVarIndex(geom.id, 'radius')].value,
+        radius: Math.abs(solvedRadius),
+        startAngle,
+        endAngle,
       };
     } else if (geom.type === 'rect') {
       return {

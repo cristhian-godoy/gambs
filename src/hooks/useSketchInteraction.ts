@@ -1,4 +1,4 @@
-import { type RefObject, useEffect, useRef } from 'react';
+import { type RefObject, useCallback, useEffect, useRef } from 'react';
 
 import { distance, hitTestArc, hitTestCircle, hitTestLine, hitTestRect } from '../core/geometry.ts';
 import { type SketchConstraint, solveSketch } from '../core/solver.ts';
@@ -213,7 +213,7 @@ export function useSketchInteraction({
   features,
   selectedElements,
   setSelectedElements,
-  addSketchGeometry,
+  addSketchGeometry: addSketchGeometryBase,
   updateSketchConstraint,
   updateFeature,
   previewRef,
@@ -222,6 +222,19 @@ export function useSketchInteraction({
 }: UseSketchInteractionProps) {
   const isPanningRef = useRef(false);
   const startDragRef = useRef({ x: 0, y: 0 });
+
+  const addSketchGeometry = useCallback(
+    (geometry: SketchGeometry) => {
+      if (localGeometriesRef.current) {
+        (localGeometriesRef as { current: SketchGeometry[] }).current = [
+          ...localGeometriesRef.current,
+          geometry,
+        ];
+      }
+      addSketchGeometryBase(geometry);
+    },
+    [addSketchGeometryBase, localGeometriesRef],
+  );
 
   // Drawing state
   const isDrawingRef = useRef(false);
@@ -965,6 +978,7 @@ export function useSketchInteraction({
     };
   }, [
     canvasRef,
+    addSketchGeometryBase,
     addSketchGeometry,
     updateSketchConstraint,
     updateFeature,

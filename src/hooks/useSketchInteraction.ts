@@ -506,6 +506,215 @@ export function useSketchInteraction({
       }
     };
 
+    const handleSelectToolMouseDown = (e: MouseEvent, currentSelected: SelectedElement[]) => {
+      const worldPos = screenToWorld(e.clientX, e.clientY);
+
+      if (hoveredVertexRef.current || hoveredGeomIdRef.current) {
+        const isDatum =
+          hoveredGeomIdRef.current?.startsWith('datum_') ||
+          hoveredVertexRef.current?.geomId.startsWith('datum_');
+
+        if (!isDatum) {
+          isDraggingEntityRef.current = true;
+          dragStartWorldRef.current = worldPos;
+          initialGeomsForDragRef.current = JSON.parse(
+            JSON.stringify(localGeometriesRef.current || []),
+          );
+
+          if (hoveredVertexRef.current) {
+            draggedVertexRef.current = { ...hoveredVertexRef.current };
+            draggedGeomIdRef.current = null;
+          } else {
+            draggedGeomIdRef.current = hoveredGeomIdRef.current;
+            draggedVertexRef.current = null;
+          }
+        }
+
+        const targetElement = hoveredVertexRef.current
+          ? { geomId: hoveredVertexRef.current.geomId, vertexType: hoveredVertexRef.current.type }
+          : { geomId: hoveredGeomIdRef.current! };
+
+        const isEquals = (el1: typeof targetElement, el2: typeof targetElement) =>
+          el1.geomId === el2.geomId && el1.vertexType === el2.vertexType;
+
+        if (settings.multiSelectMethod === 'click' || e.ctrlKey || e.metaKey || e.shiftKey) {
+          if (currentSelected.some((el) => isEquals(el, targetElement))) {
+            setSelectedElements(currentSelected.filter((el) => !isEquals(el, targetElement)));
+          } else {
+            setSelectedElements([...currentSelected, targetElement]);
+          }
+        } else {
+          if (!currentSelected.some((el) => isEquals(el, targetElement))) {
+            setSelectedElements([targetElement]);
+          }
+        }
+        e.preventDefault();
+      } else {
+        if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+          setSelectedElements([]);
+        }
+      }
+    };
+
+    const handleDrawingToolMouseDown = (
+      e: MouseEvent,
+      currentTool: ToolType,
+      currentSketchId: string | null,
+    ) => {
+      let worldPos = screenToWorld(e.clientX, e.clientY);
+      if (settings.snapToVertices) {
+        const { zoom } = transformRef.current;
+        worldPos = getSnapTarget(worldPos, localGeometriesRef.current || [], zoom);
+      }
+
+      const sketchId = currentSketchId;
+      if (!sketchId) return;
+
+      if (!isDrawingRef.current) {
+        isDrawingRef.current = true;
+        drawingStartRef.current = worldPos;
+      } else {
+        const start = drawingStartRef.current!;
+        const id = `${currentTool}_${Date.now()}`;
+
+        if (currentTool === 'line') {
+          addSketchGeometry({
+            type: 'line',
+            id,
+            start,
+            end: worldPos,
+          });
+          drawingStartRef.current = worldPos;
+          previewRef.current = {
+            type: 'line',
+            id: `preview_${Date.now()}`,
+            start: worldPos,
+            end: worldPos,
+          };
+        } else if (currentTool === 'circle') {
+          const dx = worldPos.x - start.x;
+          const dy = worldPos.y - start.y;
+          const radius = Math.sqrt(dx * dx + dy * dy);
+          addSketchGeometry({
+            type: 'circle',
+            id,
+            center: start,
+            radius,
+          });
+          isDrawingRef.current = false;
+          drawingStartRef.current = null;
+          previewRef.current = null;
+          setActiveTool('select');
+        } else if (currentTool === 'rect') {
+          addSketchGeometry({
+            type: 'rect',
+            id,
+            start,
+            end: worldPos,
+          });
+          isDrawingRef.current = false;
+          drawingStartRef.current = null;
+          previewRef.current = null;
+          setActiveTool('select');
+        } else if (currentTool === 'arc') {
+          const dx = worldPos.x - start.x;
+          const dy = worldPos.y - start.y;
+          const radius = Math.sqrt(dx * dx + dy * dy);
+          const startAngle = Math.atan2(worldPos.y - start.y, worldPos.x - start.x);
+          addSketchGeometry({
+            type: 'arc',
+            id,
+            center: start,
+            radius,
+            startAngle,
+            endAngle: startAngle + Math.PI,
+          });
+          isDrawingRef.current = false;
+          drawingStartRef.current = null;
+          previewRef.current = null;
+          setActiveTool('select');
+        } else if (currentTool === 'triangle') {
+          const bx1 = start.x;
+          const by1 = worldPos.y;
+          const bx2 = worldPos.x;
+          const by2 = worldPos.y;
+          const px = (start.x + worldPos.x) / 2;
+          const py = start.y;
+          const t = Date.now();
+
+          addSketchGeometry({
+            type: 'line',
+            id: `line_tri1_${t}`,
+            start: { x: bx1, y: by1 },
+            end: { x: bx2, y: by2 },
+          });
+          addSketchGeometry({
+            type: 'line',
+            id: `line_tri2_${t}`,
+            start: { x: bx2, y: by2 },
+            end: { x: px, y: py },
+          });
+          addSketchGeometry({
+            type: 'line',
+            id: `line_tri3_${t}`,
+            start: { x: px, y: py },
+            end: { x: bx1, y: by1 },
+          });
+
+          isDrawingRef.current = false;
+          drawingStartRef.current = null;
+          previewRef.current = null;
+          setActiveTool('select');
+        } else if (currentTool === 'slot') {
+          const h = Math.abs(worldPos.y - start.y);
+          const radius = h / 2;
+          if (radius > 1) {
+            const x1 = Math.min(start.x, worldPos.x);
+            const x2 = Math.max(start.x, worldPos.x);
+            const y1 = start.y;
+            const y2 = worldPos.y;
+            const cy = (y1 + y2) / 2;
+            const t = Date.now();
+
+            addSketchGeometry({
+              type: 'line',
+              id: `line_slot1_${t}`,
+              start: { x: x1 + radius, y: y1 },
+              end: { x: x2 - radius, y: y1 },
+            });
+            addSketchGeometry({
+              type: 'line',
+              id: `line_slot2_${t}`,
+              start: { x: x1 + radius, y: y2 },
+              end: { x: x2 - radius, y: y2 },
+            });
+            addSketchGeometry({
+              type: 'arc',
+              id: `arc_slot1_${t}`,
+              center: { x: x1 + radius, y: cy },
+              radius,
+              startAngle: Math.PI / 2,
+              endAngle: (Math.PI * 3) / 2,
+            });
+            addSketchGeometry({
+              type: 'arc',
+              id: `arc_slot2_${t}`,
+              center: { x: x2 - radius, y: cy },
+              radius,
+              startAngle: -Math.PI / 2,
+              endAngle: Math.PI / 2,
+            });
+          }
+
+          isDrawingRef.current = false;
+          drawingStartRef.current = null;
+          previewRef.current = null;
+          setActiveTool('select');
+        }
+        requestRedraw();
+      }
+    };
+
     const handleMouseDown = (e: MouseEvent) => {
       const {
         activeTool: currentTool,
@@ -522,211 +731,11 @@ export function useSketchInteraction({
         return;
       }
 
-      // Handle Select & Drag Modification trigger
-      if (e.button === 0 && currentTool === 'select') {
-        const worldPos = screenToWorld(e.clientX, e.clientY);
-
-        if (hoveredVertexRef.current || hoveredGeomIdRef.current) {
-          const isDatum =
-            hoveredGeomIdRef.current?.startsWith('datum_') ||
-            hoveredVertexRef.current?.geomId.startsWith('datum_');
-
-          if (!isDatum) {
-            isDraggingEntityRef.current = true;
-            dragStartWorldRef.current = worldPos;
-            initialGeomsForDragRef.current = JSON.parse(
-              JSON.stringify(localGeometriesRef.current || []),
-            );
-
-            if (hoveredVertexRef.current) {
-              draggedVertexRef.current = { ...hoveredVertexRef.current };
-              draggedGeomIdRef.current = null;
-            } else {
-              draggedGeomIdRef.current = hoveredGeomIdRef.current;
-              draggedVertexRef.current = null;
-            }
-          }
-
-          const targetElement = hoveredVertexRef.current
-            ? { geomId: hoveredVertexRef.current.geomId, vertexType: hoveredVertexRef.current.type }
-            : { geomId: hoveredGeomIdRef.current! };
-
-          const isEquals = (el1: typeof targetElement, el2: typeof targetElement) =>
-            el1.geomId === el2.geomId && el1.vertexType === el2.vertexType;
-
-          if (settings.multiSelectMethod === 'click' || e.ctrlKey || e.metaKey || e.shiftKey) {
-            if (currentSelected.some((el) => isEquals(el, targetElement))) {
-              setSelectedElements(currentSelected.filter((el) => !isEquals(el, targetElement)));
-            } else {
-              setSelectedElements([...currentSelected, targetElement]);
-            }
-          } else {
-            if (!currentSelected.some((el) => isEquals(el, targetElement))) {
-              setSelectedElements([targetElement]);
-            }
-          }
-          e.preventDefault();
+      if (e.button === 0) {
+        if (currentTool === 'select') {
+          handleSelectToolMouseDown(e, currentSelected);
         } else {
-          if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-            setSelectedElements([]);
-          }
-        }
-        return;
-      }
-
-      // Handle drawing triggers
-      if (e.button === 0 && currentTool !== 'select') {
-        let worldPos = screenToWorld(e.clientX, e.clientY);
-        if (settings.snapToVertices) {
-          const { zoom } = transformRef.current;
-          worldPos = getSnapTarget(worldPos, localGeometriesRef.current || [], zoom);
-        }
-
-        const sketchId = currentSketchId;
-        if (!sketchId) return;
-
-        if (!isDrawingRef.current) {
-          isDrawingRef.current = true;
-          drawingStartRef.current = worldPos;
-        } else {
-          const start = drawingStartRef.current!;
-          const id = `${currentTool}_${Date.now()}`;
-
-          if (currentTool === 'line') {
-            addSketchGeometry({
-              type: 'line',
-              id,
-              start,
-              end: worldPos,
-            });
-            drawingStartRef.current = worldPos;
-            previewRef.current = {
-              type: 'line',
-              id: `preview_${Date.now()}`,
-              start: worldPos,
-              end: worldPos,
-            };
-          } else if (currentTool === 'circle') {
-            const dx = worldPos.x - start.x;
-            const dy = worldPos.y - start.y;
-            const radius = Math.sqrt(dx * dx + dy * dy);
-            addSketchGeometry({
-              type: 'circle',
-              id,
-              center: start,
-              radius,
-            });
-            isDrawingRef.current = false;
-            drawingStartRef.current = null;
-            previewRef.current = null;
-            setActiveTool('select');
-          } else if (currentTool === 'rect') {
-            addSketchGeometry({
-              type: 'rect',
-              id,
-              start,
-              end: worldPos,
-            });
-            isDrawingRef.current = false;
-            drawingStartRef.current = null;
-            previewRef.current = null;
-            setActiveTool('select');
-          } else if (currentTool === 'arc') {
-            const dx = worldPos.x - start.x;
-            const dy = worldPos.y - start.y;
-            const radius = Math.sqrt(dx * dx + dy * dy);
-            const startAngle = Math.atan2(worldPos.y - start.y, worldPos.x - start.x);
-            addSketchGeometry({
-              type: 'arc',
-              id,
-              center: start,
-              radius,
-              startAngle,
-              endAngle: startAngle + Math.PI,
-            });
-            isDrawingRef.current = false;
-            drawingStartRef.current = null;
-            previewRef.current = null;
-            setActiveTool('select');
-          } else if (currentTool === 'triangle') {
-            const bx1 = start.x;
-            const by1 = worldPos.y;
-            const bx2 = worldPos.x;
-            const by2 = worldPos.y;
-            const px = (start.x + worldPos.x) / 2;
-            const py = start.y;
-            const t = Date.now();
-
-            addSketchGeometry({
-              type: 'line',
-              id: `line_tri1_${t}`,
-              start: { x: bx1, y: by1 },
-              end: { x: bx2, y: by2 },
-            });
-            addSketchGeometry({
-              type: 'line',
-              id: `line_tri2_${t}`,
-              start: { x: bx2, y: by2 },
-              end: { x: px, y: py },
-            });
-            addSketchGeometry({
-              type: 'line',
-              id: `line_tri3_${t}`,
-              start: { x: px, y: py },
-              end: { x: bx1, y: by1 },
-            });
-
-            isDrawingRef.current = false;
-            drawingStartRef.current = null;
-            previewRef.current = null;
-            setActiveTool('select');
-          } else if (currentTool === 'slot') {
-            const h = Math.abs(worldPos.y - start.y);
-            const radius = h / 2;
-            if (radius > 1) {
-              const x1 = Math.min(start.x, worldPos.x);
-              const x2 = Math.max(start.x, worldPos.x);
-              const y1 = start.y;
-              const y2 = worldPos.y;
-              const cy = (y1 + y2) / 2;
-              const t = Date.now();
-
-              addSketchGeometry({
-                type: 'line',
-                id: `line_slot1_${t}`,
-                start: { x: x1 + radius, y: y1 },
-                end: { x: x2 - radius, y: y1 },
-              });
-              addSketchGeometry({
-                type: 'line',
-                id: `line_slot2_${t}`,
-                start: { x: x1 + radius, y: y2 },
-                end: { x: x2 - radius, y: y2 },
-              });
-              addSketchGeometry({
-                type: 'arc',
-                id: `arc_slot1_${t}`,
-                center: { x: x1 + radius, y: cy },
-                radius,
-                startAngle: Math.PI / 2,
-                endAngle: (Math.PI * 3) / 2,
-              });
-              addSketchGeometry({
-                type: 'arc',
-                id: `arc_slot2_${t}`,
-                center: { x: x2 - radius, y: cy },
-                radius,
-                startAngle: -Math.PI / 2,
-                endAngle: Math.PI / 2,
-              });
-            }
-
-            isDrawingRef.current = false;
-            drawingStartRef.current = null;
-            previewRef.current = null;
-            setActiveTool('select');
-          }
-          requestRedraw();
+          handleDrawingToolMouseDown(e, currentTool, currentSketchId);
         }
       }
 
@@ -743,36 +752,11 @@ export function useSketchInteraction({
       }
     };
 
-    const handleMouseMove = (e: MouseEvent) => {
-      const { activeTool: currentTool, activeSketchId: currentSketchId } = stateRef.current;
-      let worldPos = screenToWorld(e.clientX, e.clientY);
-      if (currentTool !== 'select' && settings.snapToVertices) {
-        const { zoom } = transformRef.current;
-        worldPos = getSnapTarget(worldPos, localGeometriesRef.current || [], zoom);
-      }
-      setCoords({ x: worldPos.x, y: worldPos.y });
-
-      // Handle pan offset
-      if (isPanningRef.current) {
-        const dx = e.clientX - startDragRef.current.x;
-        const dy = e.clientY - startDragRef.current.y;
-        transformRef.current.offsetX += dx;
-        transformRef.current.offsetY += dy;
-        startDragRef.current = { x: e.clientX, y: e.clientY };
-        requestRedraw();
-        return;
-      }
-
-      if (isDraggingEntityRef.current || isDrawingRef.current) {
-        pendingMouseMoveRef.current = { clientX: e.clientX, clientY: e.clientY };
-        if (rafIdRef.current === null) {
-          rafIdRef.current = requestAnimationFrame(processPendingInteraction);
-        }
-        return;
-      }
-
-      // Handle Hover Calculations in select mode (including virtual datums)
-      if (currentTool === 'select' && currentSketchId) {
+    const handleSelectToolHover = (
+      worldPos: { x: number; y: number },
+      currentSketchId: string | null,
+    ) => {
+      if (currentSketchId) {
         const { zoom } = transformRef.current;
         const toleranceInWorld = 8 / zoom;
 
@@ -865,6 +849,40 @@ export function useSketchInteraction({
           canvas.style.cursor = hitVertex || hitGeomId ? 'pointer' : 'default';
           requestRedraw();
         }
+      }
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const { activeTool: currentTool, activeSketchId: currentSketchId } = stateRef.current;
+      let worldPos = screenToWorld(e.clientX, e.clientY);
+      if (currentTool !== 'select' && settings.snapToVertices) {
+        const { zoom } = transformRef.current;
+        worldPos = getSnapTarget(worldPos, localGeometriesRef.current || [], zoom);
+      }
+      setCoords({ x: worldPos.x, y: worldPos.y });
+
+      // Handle pan offset
+      if (isPanningRef.current) {
+        const dx = e.clientX - startDragRef.current.x;
+        const dy = e.clientY - startDragRef.current.y;
+        transformRef.current.offsetX += dx;
+        transformRef.current.offsetY += dy;
+        startDragRef.current = { x: e.clientX, y: e.clientY };
+        requestRedraw();
+        return;
+      }
+
+      if (isDraggingEntityRef.current || isDrawingRef.current) {
+        pendingMouseMoveRef.current = { clientX: e.clientX, clientY: e.clientY };
+        if (rafIdRef.current === null) {
+          rafIdRef.current = requestAnimationFrame(processPendingInteraction);
+        }
+        return;
+      }
+
+      // Handle Hover Calculations in select mode
+      if (currentTool === 'select') {
+        handleSelectToolHover(worldPos, currentSketchId);
       }
     };
 

@@ -723,6 +723,7 @@ export function useSketchInteraction({
           isDrawingRef.current = false;
           drawingStartRef.current = null;
           previewRef.current = null;
+          setActiveTool('select');
           requestRedraw();
           e.preventDefault();
         }
@@ -912,9 +913,8 @@ export function useSketchInteraction({
           drawingStartRef.current = null;
           previewRef.current = null;
           requestRedraw();
-        } else {
-          setActiveTool('select');
         }
+        setActiveTool('select');
       }
     };
 

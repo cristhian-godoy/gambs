@@ -1,39 +1,15 @@
 import {
-  Activity,
-  AlignJustify,
-  Box,
-  Circle,
-  CircleDot,
-  Compass,
-  Copy,
-  CornerDownRight,
   Download,
   File,
   FilePlus,
   FolderOpen,
-  GitMerge,
-  Layers,
-  LayoutGrid,
   Link as LinkIcon,
-  Lock,
   Magnet,
-  Minus,
-  MoveRight,
-  MoveUp,
-  PenTool,
-  Plus,
   Redo2,
-  RotateCw,
   Ruler,
   Save,
-  Scissors,
   Settings,
-  Slash,
-  Sliders,
-  Sparkles,
-  Square,
   ToggleLeft,
-  Triangle,
   Undo2,
   Upload,
 } from 'lucide-react';
@@ -43,6 +19,11 @@ import { buildSolidFromFeatures } from '../core/brep.ts';
 import { type SelectedElement, useCad } from '../store/CadContext.tsx';
 import type { FeatureType, SketchGeometry } from '../store/types.ts';
 import { exportToObj, exportToStep, exportToStl, importFromStep } from '../utils/exporters.ts';
+import CombineMenu from './CombineMenu.tsx';
+import ConstraintsMenu from './ConstraintsMenu.tsx';
+import DesignMenu from './DesignMenu.tsx';
+import DrawMenu from './DrawMenu.tsx';
+import ModifyMenu from './ModifyMenu.tsx';
 
 interface ToolbarProps {
   onOpenSettings: () => void;
@@ -58,8 +39,6 @@ export default function Toolbar({ onOpenSettings }: ToolbarProps): ReactNode {
     redo,
     canUndo,
     canRedo,
-    activeTool,
-    setActiveTool,
     selectedElements,
     setSelectedElements,
     toggleConstructionGeometries,
@@ -341,28 +320,6 @@ export default function Toolbar({ onOpenSettings }: ToolbarProps): ReactNode {
     }
   };
 
-  const getDrawingToolLabel = () => {
-    switch (activeTool) {
-      case 'line':
-        return { text: 'Line', icon: <Slash size={16} /> };
-      case 'circle':
-        return { text: 'Circle', icon: <Circle size={16} /> };
-      case 'rect':
-        return { text: 'Rectangle', icon: <Square size={16} /> };
-      case 'arc':
-        return { text: 'Arc', icon: <Compass size={16} /> };
-      case 'triangle':
-        return { text: 'Triangle', icon: <Triangle size={16} /> };
-      case 'slot':
-        return { text: 'Slot', icon: <ToggleLeft size={16} /> };
-      default:
-        return { text: 'Draw', icon: <Slash size={16} /> };
-    }
-  };
-
-  const isDrawActive = ['line', 'circle', 'rect', 'arc', 'triangle', 'slot'].includes(activeTool);
-  const currentDrawTool = getDrawingToolLabel();
-
   return (
     <header className="top-toolbar">
       <div className="toolbar-group">
@@ -377,6 +334,7 @@ export default function Toolbar({ onOpenSettings }: ToolbarProps): ReactNode {
               setModifyMenuOpen(false);
               setCombineMenuOpen(false);
               setDrawMenuOpen(false);
+              setConstraintsMenuOpen(false);
             }}
             title="File Menu"
           >
@@ -498,473 +456,139 @@ export default function Toolbar({ onOpenSettings }: ToolbarProps): ReactNode {
           )}
         </div>
 
-        <div className="design-menu-container" style={{ position: 'relative' }}>
-          <button
-            className="toolbar-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              setDesignMenuOpen(!designMenuOpen);
-              setFileMenuOpen(false);
-              setModifyMenuOpen(false);
-              setCombineMenuOpen(false);
-            }}
-            title="Design Menu"
-          >
-            <Sparkles size={16} /> Design
-          </button>
-
-          {designMenuOpen && (
-            <div
-              className="dropdown-menu"
-              style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                backgroundColor: 'var(--cad-color-surface-elevated)',
-                border: '1px solid var(--cad-glass-border-base)',
-                borderRadius: 'var(--cad-radius-md)',
-                boxShadow: 'var(--cad-shadow-glow)',
-                zIndex: 100,
-                display: 'flex',
-                flexDirection: 'column',
-                minWidth: '180px',
-                padding: '4px 0',
-                marginTop: '4px',
-              }}
-            >
-              <button
-                className="dropdown-item"
-                onClick={() => {
-                  handleAddFeature('sketch');
-                  setDesignMenuOpen(false);
-                }}
-              >
-                <PenTool size={14} /> Sketch
-              </button>
-              <button
-                className="dropdown-item"
-                onClick={() => {
-                  handleAddFeature('pad');
-                  setDesignMenuOpen(false);
-                }}
-              >
-                <Box size={14} /> Pad
-              </button>
-              <button
-                className="dropdown-item"
-                onClick={() => {
-                  handleAddFeature('revolution');
-                  setDesignMenuOpen(false);
-                }}
-              >
-                <RotateCw size={14} /> Revolve
-              </button>
-              <button
-                className="dropdown-item"
-                onClick={() => {
-                  handleAddFeature('loft');
-                  setDesignMenuOpen(false);
-                }}
-              >
-                <Layers size={14} /> Loft
-              </button>
-              <button
-                className="dropdown-item"
-                onClick={() => {
-                  handleAddFeature('pipe');
-                  setDesignMenuOpen(false);
-                }}
-              >
-                <MoveRight size={14} /> Pipe
-              </button>
-              <button
-                className="dropdown-item"
-                onClick={() => {
-                  handleAddFeature('helix');
-                  setDesignMenuOpen(false);
-                }}
-              >
-                <Activity size={14} /> Helix
-              </button>
-              <button
-                className="dropdown-item"
-                onClick={() => {
-                  handleAddFeature('pocket');
-                  setDesignMenuOpen(false);
-                }}
-              >
-                <Scissors size={14} /> Pocket
-              </button>
-              <button
-                className="dropdown-item"
-                onClick={() => {
-                  handleAddFeature('groove');
-                  setDesignMenuOpen(false);
-                }}
-              >
-                <Sliders size={14} /> Groove
-              </button>
-              <button
-                className="dropdown-item"
-                onClick={() => {
-                  handleAddFeature('hole');
-                  setDesignMenuOpen(false);
-                }}
-              >
-                <CircleDot size={14} /> Hole
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div className="modify-menu-container" style={{ position: 'relative' }}>
-          <button
-            className="toolbar-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              setModifyMenuOpen(!modifyMenuOpen);
-              setFileMenuOpen(false);
-              setDesignMenuOpen(false);
-              setCombineMenuOpen(false);
-            }}
-            title="Modify Menu"
-          >
-            <Sliders size={16} /> Modify
-          </button>
-
-          {modifyMenuOpen && (
-            <div
-              className="dropdown-menu"
-              style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                backgroundColor: 'var(--cad-color-surface-elevated)',
-                border: '1px solid var(--cad-glass-border-base)',
-                borderRadius: 'var(--cad-radius-md)',
-                boxShadow: 'var(--cad-shadow-glow)',
-                zIndex: 100,
-                display: 'flex',
-                flexDirection: 'column',
-                minWidth: '180px',
-                padding: '4px 0',
-                marginTop: '4px',
-              }}
-            >
-              <button
-                className="dropdown-item"
-                onClick={() => {
-                  handleAddFeature('fillet');
-                  setModifyMenuOpen(false);
-                }}
-              >
-                <CornerDownRight size={14} /> Fillet
-              </button>
-              <button
-                className="dropdown-item"
-                onClick={() => {
-                  handleAddFeature('chamfer');
-                  setModifyMenuOpen(false);
-                }}
-              >
-                <Slash size={14} /> Chamfer
-              </button>
-              <button
-                className="dropdown-item"
-                onClick={() => {
-                  handleAddFeature('draft');
-                  setModifyMenuOpen(false);
-                }}
-              >
-                <MoveUp size={14} /> Draft
-              </button>
-              <button
-                className="dropdown-item"
-                onClick={() => {
-                  handleAddFeature('thickness');
-                  setModifyMenuOpen(false);
-                }}
-              >
-                <Square size={14} /> Shell
-              </button>
-              <button
-                className="dropdown-item"
-                onClick={() => {
-                  handleAddFeature('linear_pattern');
-                  setModifyMenuOpen(false);
-                }}
-              >
-                <LayoutGrid size={14} /> Linear Pattern
-              </button>
-              <button
-                className="dropdown-item"
-                onClick={() => {
-                  handleAddFeature('polar_pattern');
-                  setModifyMenuOpen(false);
-                }}
-              >
-                <RotateCw size={14} /> Polar Pattern
-              </button>
-              <button
-                className="dropdown-item"
-                onClick={() => {
-                  handleAddFeature('mirror');
-                  setModifyMenuOpen(false);
-                }}
-              >
-                <Copy size={14} /> Mirror
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div className="combine-menu-container" style={{ position: 'relative' }}>
-          <button
-            className="toolbar-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              setCombineMenuOpen(!combineMenuOpen);
-              setFileMenuOpen(false);
-              setDesignMenuOpen(false);
-              setModifyMenuOpen(false);
-            }}
-            title="Combine Menu"
-          >
-            <GitMerge size={16} /> Combine
-          </button>
-
-          {combineMenuOpen && (
-            <div
-              className="dropdown-menu"
-              style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                backgroundColor: 'var(--cad-color-surface-elevated)',
-                border: '1px solid var(--cad-glass-border-base)',
-                borderRadius: 'var(--cad-radius-md)',
-                boxShadow: 'var(--cad-shadow-glow)',
-                zIndex: 100,
-                display: 'flex',
-                flexDirection: 'column',
-                minWidth: '180px',
-                padding: '4px 0',
-                marginTop: '4px',
-              }}
-            >
-              <button
-                className="dropdown-item"
-                onClick={() => {
-                  handleAddFeature('union');
-                  setCombineMenuOpen(false);
-                }}
-              >
-                <Plus size={14} /> Union
-              </button>
-              <button
-                className="dropdown-item"
-                onClick={() => {
-                  handleAddFeature('difference');
-                  setCombineMenuOpen(false);
-                }}
-              >
-                <Minus size={14} /> Difference
-              </button>
-              <button
-                className="dropdown-item"
-                onClick={() => {
-                  handleAddFeature('intersection');
-                  setCombineMenuOpen(false);
-                }}
-              >
-                <CircleDot size={14} /> Intersect
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Selection Filter group */}
-        <div
-          className="filter-group"
-          style={{
-            display: 'flex',
-            gap: '2px',
-            alignItems: 'center',
-            backgroundColor: 'var(--cad-glass-bg-base)',
-            padding: '2px',
-            borderRadius: 'var(--cad-radius-md)',
-            border: '1px solid var(--cad-glass-border-base)',
-            marginLeft: '4px',
-            marginRight: '4px',
-          }}
-        >
-          <button
-            className={`toolbar-btn ${selectionFilter === 'all' ? 'active' : ''}`}
-            onClick={() => setSelectionFilter('all')}
-            style={{
-              padding: '4px 8px',
-              fontSize: '0.75rem',
-              height: '24px',
-              border: 'none',
-              borderRadius: 'var(--cad-radius-sm)',
-            }}
-            title="Filter: All"
-          >
-            All
-          </button>
-          <button
-            className={`toolbar-btn ${selectionFilter === 'vertices' ? 'active' : ''}`}
-            onClick={() => setSelectionFilter('vertices')}
-            style={{
-              padding: '4px 8px',
-              fontSize: '0.75rem',
-              height: '24px',
-              border: 'none',
-              borderRadius: 'var(--cad-radius-sm)',
-            }}
-            title="Filter: Vertices"
-          >
-            Vertices
-          </button>
-          <button
-            className={`toolbar-btn ${selectionFilter === 'edges' ? 'active' : ''}`}
-            onClick={() => setSelectionFilter('edges')}
-            style={{
-              padding: '4px 8px',
-              fontSize: '0.75rem',
-              height: '24px',
-              border: 'none',
-              borderRadius: 'var(--cad-radius-sm)',
-            }}
-            title="Filter: Edges"
-          >
-            Edges
-          </button>
-          <button
-            className={`toolbar-btn ${selectionFilter === 'faces' ? 'active' : ''}`}
-            onClick={() => setSelectionFilter('faces')}
-            style={{
-              padding: '4px 8px',
-              fontSize: '0.75rem',
-              height: '24px',
-              border: 'none',
-              borderRadius: 'var(--cad-radius-sm)',
-            }}
-            title="Filter: Faces"
-          >
-            Faces
-          </button>
-        </div>
-
-        {activeSketchId && (
+        {/* 3D workspace tools: conditionally render when not in 2D sketch mode */}
+        {!activeSketchId && (
           <>
-            <div className="draw-menu-container" style={{ position: 'relative' }}>
+            <DesignMenu
+              isOpen={designMenuOpen}
+              onToggle={(e) => {
+                e.stopPropagation();
+                setDesignMenuOpen(!designMenuOpen);
+                setFileMenuOpen(false);
+                setModifyMenuOpen(false);
+                setCombineMenuOpen(false);
+              }}
+              onClose={() => setDesignMenuOpen(false)}
+              onAddFeature={handleAddFeature}
+            />
+
+            <ModifyMenu
+              isOpen={modifyMenuOpen}
+              onToggle={(e) => {
+                e.stopPropagation();
+                setModifyMenuOpen(!modifyMenuOpen);
+                setFileMenuOpen(false);
+                setDesignMenuOpen(false);
+                setCombineMenuOpen(false);
+              }}
+              onClose={() => setModifyMenuOpen(false)}
+              onAddFeature={handleAddFeature}
+            />
+
+            <CombineMenu
+              isOpen={combineMenuOpen}
+              onToggle={(e) => {
+                e.stopPropagation();
+                setCombineMenuOpen(!combineMenuOpen);
+                setFileMenuOpen(false);
+                setDesignMenuOpen(false);
+                setModifyMenuOpen(false);
+              }}
+              onClose={() => setCombineMenuOpen(false)}
+              onAddFeature={handleAddFeature}
+            />
+
+            {/* Selection Filter group */}
+            <div
+              className="filter-group"
+              style={{
+                display: 'flex',
+                gap: '2px',
+                alignItems: 'center',
+                backgroundColor: 'var(--cad-glass-bg-base)',
+                padding: '2px',
+                borderRadius: 'var(--cad-radius-md)',
+                border: '1px solid var(--cad-glass-border-base)',
+                marginLeft: '4px',
+                marginRight: '4px',
+              }}
+            >
               <button
-                className={`toolbar-btn ${isDrawActive ? 'active' : ''}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setDrawMenuOpen(!drawMenuOpen);
-                  setFileMenuOpen(false);
-                  setDesignMenuOpen(false);
-                  setModifyMenuOpen(false);
-                  setCombineMenuOpen(false);
-                  setConstraintsMenuOpen(false);
+                className={`toolbar-btn ${selectionFilter === 'all' ? 'active' : ''}`}
+                onClick={() => setSelectionFilter('all')}
+                style={{
+                  padding: '4px 8px',
+                  fontSize: '0.75rem',
+                  height: '24px',
+                  border: 'none',
+                  borderRadius: 'var(--cad-radius-sm)',
                 }}
-                title="Draw Menu"
+                title="Filter: All"
               >
-                {currentDrawTool.icon}
-                {currentDrawTool.text}
+                All
               </button>
-
-              {drawMenuOpen && (
-                <div
-                  className="dropdown-menu"
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    backgroundColor: 'var(--cad-color-surface-elevated)',
-                    border: '1px solid var(--cad-glass-border-base)',
-                    borderRadius: 'var(--cad-radius-md)',
-                    boxShadow: 'var(--cad-shadow-glow)',
-                    zIndex: 100,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    minWidth: '160px',
-                    padding: '4px 0',
-                    marginTop: '4px',
-                  }}
-                >
-                  <button
-                    className={`dropdown-item ${activeTool === 'line' ? 'active' : ''}`}
-                    onClick={() => {
-                      setActiveTool(activeTool === 'line' ? 'select' : 'line');
-                      setDrawMenuOpen(false);
-                    }}
-                  >
-                    <Slash size={14} /> Line
-                  </button>
-
-                  <button
-                    className={`dropdown-item ${activeTool === 'circle' ? 'active' : ''}`}
-                    onClick={() => {
-                      setActiveTool(activeTool === 'circle' ? 'select' : 'circle');
-                      setDrawMenuOpen(false);
-                    }}
-                  >
-                    <Circle size={14} /> Circle
-                  </button>
-
-                  <button
-                    className={`dropdown-item ${activeTool === 'rect' ? 'active' : ''}`}
-                    onClick={() => {
-                      setActiveTool(activeTool === 'rect' ? 'select' : 'rect');
-                      setDrawMenuOpen(false);
-                    }}
-                  >
-                    <Square size={14} /> Rectangle
-                  </button>
-
-                  <button
-                    className={`dropdown-item ${activeTool === 'arc' ? 'active' : ''}`}
-                    onClick={() => {
-                      setActiveTool(activeTool === 'arc' ? 'select' : 'arc');
-                      setDrawMenuOpen(false);
-                    }}
-                  >
-                    <Compass size={14} /> Arc
-                  </button>
-
-                  <button
-                    className={`dropdown-item ${activeTool === 'triangle' ? 'active' : ''}`}
-                    onClick={() => {
-                      setActiveTool(activeTool === 'triangle' ? 'select' : 'triangle');
-                      setDrawMenuOpen(false);
-                    }}
-                  >
-                    <Triangle size={14} /> Triangle
-                  </button>
-
-                  <button
-                    className={`dropdown-item ${activeTool === 'slot' ? 'active' : ''}`}
-                    onClick={() => {
-                      setActiveTool(activeTool === 'slot' ? 'select' : 'slot');
-                      setDrawMenuOpen(false);
-                    }}
-                  >
-                    <ToggleLeft size={14} /> Slot
-                  </button>
-                </div>
-              )}
+              <button
+                className={`toolbar-btn ${selectionFilter === 'vertices' ? 'active' : ''}`}
+                onClick={() => setSelectionFilter('vertices')}
+                style={{
+                  padding: '4px 8px',
+                  fontSize: '0.75rem',
+                  height: '24px',
+                  border: 'none',
+                  borderRadius: 'var(--cad-radius-sm)',
+                }}
+                title="Filter: Vertices"
+              >
+                Vertices
+              </button>
+              <button
+                className={`toolbar-btn ${selectionFilter === 'edges' ? 'active' : ''}`}
+                onClick={() => setSelectionFilter('edges')}
+                style={{
+                  padding: '4px 8px',
+                  fontSize: '0.75rem',
+                  height: '24px',
+                  border: 'none',
+                  borderRadius: 'var(--cad-radius-sm)',
+                }}
+                title="Filter: Edges"
+              >
+                Edges
+              </button>
+              <button
+                className={`toolbar-btn ${selectionFilter === 'faces' ? 'active' : ''}`}
+                onClick={() => setSelectionFilter('faces')}
+                style={{
+                  padding: '4px 8px',
+                  fontSize: '0.75rem',
+                  height: '24px',
+                  border: 'none',
+                  borderRadius: 'var(--cad-radius-sm)',
+                }}
+                title="Filter: Faces"
+              >
+                Faces
+              </button>
             </div>
-
-            <div className="toolbar-divider" />
           </>
         )}
 
-        {/* Constraints Actions Group */}
+        {/* 2D sketch workspace tools: conditionally render when in 2D sketch mode */}
         {activeSketchId && (
           <>
+            <DrawMenu
+              isOpen={drawMenuOpen}
+              onToggle={(e) => {
+                e.stopPropagation();
+                setDrawMenuOpen(!drawMenuOpen);
+                setFileMenuOpen(false);
+                setConstraintsMenuOpen(false);
+              }}
+              onClose={() => setDrawMenuOpen(false)}
+            />
+
+            <div className="toolbar-divider" />
+
             <button
               className={`toolbar-btn ${settings.snapToVertices ? 'active' : ''}`}
               onClick={() => updateSettings({ snapToVertices: !settings.snapToVertices })}
@@ -1012,141 +636,32 @@ export default function Toolbar({ onOpenSettings }: ToolbarProps): ReactNode {
               Dimension
             </button>
 
-            <div className="constraints-menu-container" style={{ position: 'relative' }}>
-              <button
-                className="toolbar-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setConstraintsMenuOpen(!constraintsMenuOpen);
-                  setFileMenuOpen(false);
-                  setDesignMenuOpen(false);
-                  setModifyMenuOpen(false);
-                  setCombineMenuOpen(false);
-                  setDrawMenuOpen(false);
-                }}
-                title="Constraints Menu"
-              >
-                <Ruler size={16} /> More Constraints
-              </button>
-
-              {constraintsMenuOpen && (
-                <div
-                  className="dropdown-menu"
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    backgroundColor: 'var(--cad-color-surface-elevated)',
-                    border: '1px solid var(--cad-glass-border-base)',
-                    borderRadius: 'var(--cad-radius-md)',
-                    boxShadow: 'var(--cad-shadow-glow)',
-                    zIndex: 100,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    minWidth: '180px',
-                    padding: '4px 0',
-                    marginTop: '4px',
-                  }}
-                >
-                  <button
-                    className="dropdown-item"
-                    onClick={() => {
-                      applyHorizontal();
-                      setConstraintsMenuOpen(false);
-                    }}
-                    disabled={!canHorizontal}
-                    title="Horizontal Constraint (Select 1 line)"
-                    style={{ opacity: canHorizontal ? 1 : 0.4 }}
-                  >
-                    <MoveRight size={14} /> Horizontal
-                  </button>
-                  <button
-                    className="dropdown-item"
-                    onClick={() => {
-                      applyVertical();
-                      setConstraintsMenuOpen(false);
-                    }}
-                    disabled={!canVertical}
-                    title="Vertical Constraint (Select 1 line)"
-                    style={{ opacity: canVertical ? 1 : 0.4 }}
-                  >
-                    <MoveUp size={14} /> Vertical
-                  </button>
-                  <button
-                    className="dropdown-item"
-                    onClick={() => {
-                      applyParallel();
-                      setConstraintsMenuOpen(false);
-                    }}
-                    disabled={!canParallel}
-                    title="Parallel Constraint (Select 2 lines)"
-                    style={{ opacity: canParallel ? 1 : 0.4 }}
-                  >
-                    <AlignJustify size={14} /> Parallel
-                  </button>
-                  <button
-                    className="dropdown-item"
-                    onClick={() => {
-                      applyPerpendicular();
-                      setConstraintsMenuOpen(false);
-                    }}
-                    disabled={!canPerpendicular}
-                    title="Perpendicular Constraint (Select 2 lines)"
-                    style={{ opacity: canPerpendicular ? 1 : 0.4 }}
-                  >
-                    <CornerDownRight size={14} /> Perpendicular
-                  </button>
-                  <button
-                    className="dropdown-item"
-                    onClick={() => {
-                      applyTangent();
-                      setConstraintsMenuOpen(false);
-                    }}
-                    disabled={!canTangent}
-                    title="Tangent Constraint (Select Line + Circle or 2 Circles)"
-                    style={{ opacity: canTangent ? 1 : 0.4 }}
-                  >
-                    <CircleDot size={14} /> Tangent
-                  </button>
-                  <button
-                    className="dropdown-item"
-                    onClick={() => {
-                      applyFixed();
-                      setConstraintsMenuOpen(false);
-                    }}
-                    disabled={!canFixed}
-                    title="Fixed Constraint (Select 1 point)"
-                    style={{ opacity: canFixed ? 1 : 0.4 }}
-                  >
-                    <Lock size={14} /> Fix
-                  </button>
-                  <button
-                    className="dropdown-item"
-                    onClick={() => {
-                      applyRadius();
-                      setConstraintsMenuOpen(false);
-                    }}
-                    disabled={!canRadius}
-                    title="Radius Constraint (Select 1 circle)"
-                    style={{ opacity: canRadius ? 1 : 0.4 }}
-                  >
-                    <Circle size={14} /> Radius
-                  </button>
-                  <button
-                    className="dropdown-item"
-                    onClick={() => {
-                      applyAngle();
-                      setConstraintsMenuOpen(false);
-                    }}
-                    disabled={!canAngle}
-                    title="Angle Constraint (Select 2 lines)"
-                    style={{ opacity: canAngle ? 1 : 0.4 }}
-                  >
-                    <Compass size={14} /> Angle
-                  </button>
-                </div>
-              )}
-            </div>
+            <ConstraintsMenu
+              isOpen={constraintsMenuOpen}
+              onToggle={(e) => {
+                e.stopPropagation();
+                setConstraintsMenuOpen(!constraintsMenuOpen);
+                setFileMenuOpen(false);
+                setDrawMenuOpen(false);
+              }}
+              onClose={() => setConstraintsMenuOpen(false)}
+              canHorizontal={canHorizontal}
+              canVertical={canVertical}
+              canParallel={canParallel}
+              canPerpendicular={canPerpendicular}
+              canTangent={canTangent}
+              canFixed={canFixed}
+              canRadius={canRadius}
+              canAngle={canAngle}
+              applyHorizontal={applyHorizontal}
+              applyVertical={applyVertical}
+              applyParallel={applyParallel}
+              applyPerpendicular={applyPerpendicular}
+              applyTangent={applyTangent}
+              applyFixed={applyFixed}
+              applyRadius={applyRadius}
+              applyAngle={applyAngle}
+            />
 
             <div className="toolbar-divider" />
             <button

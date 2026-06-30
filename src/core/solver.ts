@@ -22,6 +22,8 @@ export interface SketchConstraint {
     vertexType?: 'start' | 'end' | 'center' | 'corner1' | 'corner2';
   }[];
   value?: number; // for dimensional constraints
+  xValue?: number;
+  yValue?: number;
 }
 
 interface Variable {
@@ -609,8 +611,8 @@ export function solveSketch(
 
       case 'fixed': {
         const p = resolvePointIndex(c.targets[0]);
-        const fx = c.value !== undefined ? c.value : 0;
-        const fy = c.value !== undefined ? c.value : 0;
+        const fx = c.xValue !== undefined ? c.xValue : c.value !== undefined ? c.value : 0;
+        const fy = c.yValue !== undefined ? c.yValue : c.value !== undefined ? c.value : 0;
 
         if (p.xIdx !== -1) {
           equations.push({

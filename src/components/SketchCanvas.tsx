@@ -209,6 +209,10 @@ export default function SketchCanvas(): ReactNode {
         features: currentFeatures,
       } = stateRef.current;
 
+      const brandMainColor =
+        settings.theme === 'light' ? 'hsl(217deg 91% 55%)' : 'hsl(217deg 91% 60%)';
+      const brandSecondaryColor = 'hsl(172deg 80% 45%)';
+
       ctx.clearRect(0, 0, width, height);
 
       ctx.save();
@@ -261,7 +265,7 @@ export default function SketchCanvas(): ReactNode {
       const isXSelected = currentSelected.some((el) => el.geomId === 'datum_axis_x');
       const isXHovered = hoveredGeomIdRef.current === 'datum_axis_x';
       if (isXSelected) {
-        ctx.strokeStyle = 'var(--cad-color-brand-secondary)';
+        ctx.strokeStyle = brandSecondaryColor;
         ctx.lineWidth = 3 / zoom;
       } else if (isXHovered) {
         ctx.strokeStyle = settings.theme === 'light' ? 'hsl(35deg 90% 45%)' : 'hsl(45deg 100% 50%)';
@@ -279,7 +283,7 @@ export default function SketchCanvas(): ReactNode {
       const isYSelected = currentSelected.some((el) => el.geomId === 'datum_axis_y');
       const isYHovered = hoveredGeomIdRef.current === 'datum_axis_y';
       if (isYSelected) {
-        ctx.strokeStyle = 'var(--cad-color-brand-secondary)';
+        ctx.strokeStyle = brandSecondaryColor;
         ctx.lineWidth = 3 / zoom;
       } else if (isYHovered) {
         ctx.strokeStyle = settings.theme === 'light' ? 'hsl(35deg 90% 45%)' : 'hsl(45deg 100% 50%)';
@@ -314,7 +318,7 @@ export default function SketchCanvas(): ReactNode {
             ctx.setLineDash([6 / zoom, 4 / zoom]);
             ctx.lineWidth = 1.5 / zoom;
             if (isSelected) {
-              ctx.strokeStyle = 'var(--cad-color-brand-secondary)';
+              ctx.strokeStyle = brandSecondaryColor;
             } else if (isHovered) {
               ctx.strokeStyle =
                 settings.theme === 'light' ? 'hsl(35deg 90% 45%)' : 'hsl(45deg 100% 50%)';
@@ -325,7 +329,7 @@ export default function SketchCanvas(): ReactNode {
           } else {
             ctx.setLineDash([]);
             if (isSelected) {
-              ctx.strokeStyle = 'var(--cad-color-brand-secondary)';
+              ctx.strokeStyle = brandSecondaryColor;
               ctx.lineWidth = 3 / zoom;
             } else if (isHovered) {
               ctx.strokeStyle =
@@ -340,7 +344,7 @@ export default function SketchCanvas(): ReactNode {
               ctx.strokeStyle = '#22c55e';
               ctx.lineWidth = 2 / zoom;
             } else {
-              ctx.strokeStyle = 'var(--cad-color-brand-main)';
+              ctx.strokeStyle = brandMainColor;
               ctx.lineWidth = 2 / zoom;
             }
           }
@@ -411,12 +415,12 @@ export default function SketchCanvas(): ReactNode {
               ctx.fill();
             } else {
               ctx.fillStyle = isVertSelected
-                ? 'var(--cad-color-brand-secondary)'
+                ? brandSecondaryColor
                 : geom.isConstruction
                   ? settings.theme === 'light'
                     ? 'rgba(0, 0, 0, 0.4)'
                     : 'rgba(255, 255, 255, 0.4)'
-                  : 'var(--cad-color-brand-main)';
+                  : brandMainColor;
               ctx.beginPath();
               ctx.arc(vert.point.x, vert.point.y, 4 / zoom, 0, Math.PI * 2);
               ctx.fill();
@@ -617,7 +621,7 @@ export default function SketchCanvas(): ReactNode {
         hoveredVertexRef.current && hoveredVertexRef.current.geomId === 'datum_origin';
 
       if (isOriginSelected) {
-        ctx.fillStyle = 'var(--cad-color-brand-secondary)';
+        ctx.fillStyle = brandSecondaryColor;
         ctx.beginPath();
         ctx.arc(0, 0, 6 / zoom, 0, Math.PI * 2);
         ctx.fill();
@@ -627,7 +631,7 @@ export default function SketchCanvas(): ReactNode {
         ctx.arc(0, 0, 6 / zoom, 0, Math.PI * 2);
         ctx.fill();
       } else {
-        ctx.fillStyle = 'var(--cad-color-brand-main)';
+        ctx.fillStyle = brandMainColor;
         ctx.beginPath();
         ctx.arc(0, 0, 4 / zoom, 0, Math.PI * 2);
         ctx.fill();
